@@ -11,6 +11,8 @@ import { useDecisionEventsStore } from '../store/useDecisionEventsStore';
 import { getRollingReviewSnapshot } from '../services/database/decisions';
 import { categoryLabel } from '../utils/categoryLabel';
 import { generateRollingReflection } from '../services/ai/reviewReflection';
+import { getGentleQuestionHistory, setGentleQuestionHistory } from '../review/gentleQuestionHistoryStorage';
+import { nextGentleQuestionHistory, selectGentleQuestion } from '../review/selectGentleQuestion';
 import {
   ensureFirstAppUseAt,
   getLastReflectionAt,
@@ -110,6 +112,8 @@ export function ReviewScreen(): React.JSX.Element {
     setGenerating(true);
     setError(null);
     try {
+      const history = await getGentleQuestionHistory();
+
       const created = await generateRollingReflection({
         windowStartIso: snapshot.windowStartIso,
         windowEndIso: snapshot.windowEndIso,
@@ -124,6 +128,17 @@ export function ReviewScreen(): React.JSX.Element {
         },
       });
 
+      const selected = selectGentleQuestion(
+        {
+          decisionCount: snapshot.decisionCount,
+          mostCommonCategory: snapshot.mostCommonCategory,
+          confidenceTrend: snapshot.confidenceTrend,
+          directionStatus: snapshot.directionStatus,
+        },
+        history,
+        { cooldownWeeks: 6 }
+      );
+
       const nowIso = new Date().toISOString();
       await setRollingReflectionCache({
         windowStart: snapshot.windowStartIso,
@@ -131,15 +146,23 @@ export function ReviewScreen(): React.JSX.Element {
         generatedAt: nowIso,
         reflectionText: created.reflectionText,
         observedPatternText: created.observedPatternText,
-        gentleQuestionText: created.gentleQuestionText,
+        gentleQuestionText: selected.renderedText,
       });
       await setLastReflectionAt(nowIso);
+
+      await setGentleQuestionHistory(
+        nextGentleQuestionHistory({
+          selectedQuestionId: selected.question.id,
+          previous: history,
+          maxItems: 12,
+        })
+      );
 
       setLastReflectionAtIso(nowIso);
       setCachedGeneratedAtIso(nowIso);
       setReflection(created.reflectionText);
       setObservedPattern(created.observedPatternText);
-      setQuestion(created.gentleQuestionText);
+      setQuestion(selected.renderedText);
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Could not generate a reflection.';
       setError(message);

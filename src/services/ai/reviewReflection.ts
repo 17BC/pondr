@@ -199,13 +199,13 @@ export async function generateRollingReflection(input: RollingReflectionInput): 
     return {
       reflectionText: second.reflection,
       observedPatternText: second.observedPattern,
-      gentleQuestionText: second.question,
+      gentleQuestionText: null,
     };
   }
 
   return {
     reflectionText: first.reflection,
     observedPatternText: first.observedPattern,
-    gentleQuestionText: first.question,
+    gentleQuestionText: null,
   };
 }
