@@ -10,6 +10,7 @@ import { useDecisionEventsStore } from '../store/useDecisionEventsStore';
 import { useInsightsStore } from '../store/useInsightsStore';
 import { getWeeklyConfidenceSeries } from '../services/database/decisions';
 import { getWeekStartDay } from '../settings/weekSettings';
+import type { InsightCard as InsightCardModel, InsightCardType } from '../insights/insightTypes';
 
 export function InsightsScreen(): React.JSX.Element {
   const c = colors.light;
@@ -21,6 +22,25 @@ export function InsightsScreen(): React.JSX.Element {
 
   const [series, setSeries] = useState<Array<{ dayStartAt: number; avgConfidence: number | null; count: number }>>([]);
   const [seriesStatus, setSeriesStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+
+  // Direction is the anchor: it gives quick orientation first.
+  // The rest of the cards explain what may be contributing to that direction.
+  const orderedCards = useMemo(() => {
+    const byType = new Map<InsightCardType, InsightCardModel>();
+    for (const card of data.cards) {
+      if (!byType.has(card.type)) byType.set(card.type, card);
+    }
+
+    const order: InsightCardType[] = [
+      'direction_status',
+      'decision_focus',
+      'confidence_trend',
+      'confidence_by_category',
+      'decision_pace',
+    ];
+
+    return order.map((t) => byType.get(t)).filter(Boolean) as InsightCardModel[];
+  }, [data.cards]);
 
   useEffect(() => {
     refresh();
@@ -47,6 +67,13 @@ export function InsightsScreen(): React.JSX.Element {
   }, [saveVersion]);
 
   const hasAnySeriesData = useMemo(() => series.some((p) => (p.count ?? 0) > 0), [series]);
+
+  const weeklyAvgFromSeries = useMemo(() => {
+    const total = series.reduce((acc, p) => acc + (p.avgConfidence === null ? 0 : p.avgConfidence * p.count), 0);
+    const count = series.reduce((acc, p) => acc + (p.count ?? 0), 0);
+    if (count <= 0) return null;
+    return total / count;
+  }, [series]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -77,14 +104,14 @@ export function InsightsScreen(): React.JSX.Element {
         </Card>
       ) : (
         <>
-          {data.cards.map((card) => (
+          {orderedCards.map((card) => (
             <View key={card.id} style={styles.cardSpacer}>
               <InsightCard card={card} />
             </View>
           ))}
 
           <View style={styles.cardSpacer}>
-            <Card>
+            <Card padding={12} style={[styles.chartCard, { borderColor: c.border, backgroundColor: c.surface }]}> 
               <Text style={[styles.cardTitle, { color: c.textPrimary }]}>Confidence (This Week)</Text>
               <Text style={[styles.cardBody, { color: c.textSecondary }]}>
                 A simple view of average confidence by day (1–5). No scoring.
@@ -97,9 +124,14 @@ export function InsightsScreen(): React.JSX.Element {
               ) : seriesStatus === 'error' ? (
                 <Text style={[styles.cardBody, { color: c.textSecondary }]}>Couldn’t load chart data.</Text>
               ) : !hasAnySeriesData ? (
-                <Text style={[styles.cardBody, { color: c.textSecondary }]}>Log your first decision to see trends.</Text>
+                <Text style={[styles.cardBody, { color: c.textSecondary }]}>Log your first decision to see confidence over time.</Text>
               ) : (
-                <DotChart series={series} />
+                <>
+                  <DotChart series={series} weeklyAvg={weeklyAvgFromSeries} />
+                  <Text style={[styles.weeklyAvgText, { color: c.textSecondary }]}>
+                    Weekly average: {weeklyAvgFromSeries === null ? '—' : weeklyAvgFromSeries.toFixed(1)}
+                  </Text>
+                </>
               )}
             </Card>
           </View>
@@ -109,10 +141,14 @@ export function InsightsScreen(): React.JSX.Element {
   );
 }
 
-function DotChart(props: { series: Array<{ dayStartAt: number; avgConfidence: number | null; count: number }> }): React.JSX.Element {
+function DotChart(props: {
+  series: Array<{ dayStartAt: number; avgConfidence: number | null; count: number }>;
+  weeklyAvg: number | null;
+}): React.JSX.Element {
   const c = colors.light;
   const height = 90;
   const widthPer = 42;
+  const yAxisWidth = 18;
 
   const points = props.series.map((p) => {
     const y = p.avgConfidence === null ? null : ((p.avgConfidence - 1) / 4) * height;
@@ -121,37 +157,69 @@ function DotChart(props: { series: Array<{ dayStartAt: number; avgConfidence: nu
     return { ...p, y, label };
   });
 
+  const yTicks = [5, 4, 3, 2, 1];
+
   return (
     <View style={styles.chartWrap}>
-      <View style={[styles.chartArea, { height }]}>
-        {points.map((p) => (
-          <View key={p.dayStartAt} style={[styles.chartCol, { width: widthPer }]}>
-            <View style={styles.chartColInner}>
-              {p.y === null ? (
-                <View style={[styles.chartEmptyDot, { borderColor: c.border }]} />
-              ) : (
-                <View
-                  style={[
-                    styles.chartDot,
-                    {
-                      backgroundColor: c.primary,
-                      bottom: Math.max(0, Math.min(height, p.y)),
-                    },
-                  ]}
-                />
-              )}
+      <View style={styles.chartRow}>
+        <View style={[styles.yAxis, { height, width: yAxisWidth }]}>
+          {yTicks.map((tick) => (
+            <Text
+              key={tick}
+              style={[
+                styles.yAxisLabel,
+                {
+                  color: c.textMuted,
+                  bottom: ((tick - 1) / 4) * height,
+                },
+              ]}
+            >
+              {tick}
+            </Text>
+          ))}
+        </View>
+
+        <View style={[styles.chartArea, { height }]}>
+          {props.weeklyAvg === null ? null : (
+            <View
+              style={[
+                styles.chartAvgLine,
+                {
+                  borderColor: c.primaryMuted,
+                  bottom: Math.max(0, Math.min(height, ((props.weeklyAvg - 1) / 4) * height)),
+                },
+              ]}
+            />
+          )}
+
+          {points.map((p) => (
+            <View key={p.dayStartAt} style={[styles.chartCol, { width: widthPer }]}> 
+              <View style={styles.chartColInner}>
+                {p.y === null ? (
+                  <View style={[styles.chartEmptyDot, { borderColor: c.border }]} />
+                ) : (
+                  <View
+                    style={[
+                      styles.chartDot,
+                      {
+                        backgroundColor: c.primary,
+                        bottom: Math.max(0, Math.min(height, p.y)),
+                      },
+                    ]}
+                  />
+                )}
+              </View>
             </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={[styles.xLabelRow, { paddingLeft: yAxisWidth }]}> 
+        {points.map((p) => (
+          <View key={p.dayStartAt} style={[styles.xLabelCol, { width: widthPer }]}> 
             <Text style={[styles.chartLabel, { color: c.textSecondary }]}>{p.label}</Text>
           </View>
         ))}
-      </View>
-
-      <View style={styles.yLegendRow}>
-        <Text style={[styles.yLegend, { color: c.textMuted }]}>1</Text>
-        <Text style={[styles.yLegend, { color: c.textMuted }]}>2</Text>
-        <Text style={[styles.yLegend, { color: c.textMuted }]}>3</Text>
-        <Text style={[styles.yLegend, { color: c.textMuted }]}>4</Text>
-        <Text style={[styles.yLegend, { color: c.textMuted }]}>5</Text>
       </View>
     </View>
   );
@@ -199,11 +267,51 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chartWrap: {
-    marginTop: 12,
+    marginTop: 16,
+  },
+  chartCard: {
+    // Slightly lighter visual weight than other cards (still consistent with Card styling).
+    borderWidth: 1,
+  },
+  chartOptionalLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  chartRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  xLabelRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  xLabelCol: {
+    alignItems: 'center',
+  },
+  yAxis: {
+    paddingRight: 6,
+    position: 'relative',
+  },
+  yAxisLabel: {
+    position: 'absolute',
+    right: 0,
+    fontSize: 11,
+    fontWeight: '600',
   },
   chartArea: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    position: 'relative',
+  },
+  chartAvgLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    borderTopWidth: 1,
+    opacity: 0.45,
+    borderStyle: 'dashed',
   },
   chartCol: {
     alignItems: 'center',
@@ -229,17 +337,13 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   chartLabel: {
-    marginTop: 8,
     fontSize: 11,
     fontWeight: '600',
   },
-  yLegendRow: {
-    marginTop: 6,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  yLegend: {
-    fontSize: 11,
+  weeklyAvgText: {
+    marginTop: 10,
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: '600',
   },
 });

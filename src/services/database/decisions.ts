@@ -330,6 +330,15 @@ export async function getInsightsSnapshot(nowMs: number = Date.now(), weekStartD
       category: top.category,
       direction: 'more',
     });
+  } else {
+    cards.push({
+      id: 'confidence_by_category',
+      type: 'confidence_by_category',
+      title: INSIGHT_TITLES.confidence_by_category,
+      copy: 'Log a few decisions in each area to see confidence patterns.',
+      category: 'other',
+      direction: 'more',
+    });
   }
 
   // 3) Confidence Trend (Trend): compare current week vs previous week
@@ -366,7 +375,7 @@ export async function getInsightsSnapshot(nowMs: number = Date.now(), weekStartD
     id: 'confidence_trend',
     type: 'confidence_trend',
     title: INSIGHT_TITLES.confidence_trend,
-    copy: confidenceTrendCopy(trend),
+    copy: trend === 'NA' ? 'Log a few decisions over time to see confidence trends.' : confidenceTrendCopy(trend),
     trend,
   });
 

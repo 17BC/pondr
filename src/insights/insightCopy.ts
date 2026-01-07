@@ -25,7 +25,10 @@ export function confidenceTrendCopy(trend: ConfidenceTrend): string {
 }
 
 export function decisionPaceCopy(pace: 'more' | 'fewer'): string {
-  return `You’ve been making ${pace} decisions than usual.`;
+  if (pace === 'more') {
+    return 'You’ve been making decisions more frequently than usual.';
+  }
+  return 'You’ve been making fewer decisions than usual.';
 }
 
 export function directionStatusCopy(status: DirectionStatus): string {
