@@ -32,7 +32,7 @@ export default function App() {
     return (
       <View style={styles.container}>
         <Text style={styles.title}>CNSDR</Text>
-        <Text style={styles.subtitle}>Track decisions, not money</Text>
+        <Text style={styles.subtitle}>Reflect on your decisions.</Text>
         <Text style={styles.errorTitle}>Startup error</Text>
         <Text style={styles.errorBody}>{initError}</Text>
       </View>

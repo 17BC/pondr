@@ -285,10 +285,14 @@ export async function getInsightsSnapshot(nowMs: number = Date.now(), weekStartD
 
   const cards: InsightCard[] = [];
 
+  const weekRange = getCurrentWeekRange(now, weekStartDay);
+  const weekStartAt = weekRange.start.getTime();
+  const weekEndAt = weekRange.end.getTime();
+
   // 1) Decision Focus (Pattern): most frequent category in recent period
   const focusRows = await db.getAllAsync<{ category: string; count: number }>(
-    'SELECT category, COUNT(1) as count FROM decisions WHERE createdAt >= ? GROUP BY category ORDER BY count DESC LIMIT 2;',
-    [recentStartAt]
+    'SELECT category, COUNT(1) as count FROM decisions WHERE createdAt >= ? AND createdAt < ? GROUP BY category ORDER BY count DESC LIMIT 2;',
+    [weekStartAt, weekEndAt]
   );
   if (focusRows.length > 0) {
     const topCount = Number(focusRows[0].count ?? 0);
@@ -310,9 +314,6 @@ export async function getInsightsSnapshot(nowMs: number = Date.now(), weekStartD
   }
 
   // 2) Confidence by Category (Pattern): current week, min 2 decisions per category
-  const weekRange = getCurrentWeekRange(now, weekStartDay);
-  const weekStartAt = weekRange.start.getTime();
-  const weekEndAt = weekRange.end.getTime();
   const categoryAvgRows = await db.getAllAsync<{ category: string; avg: number | null; count: number }>(
     'SELECT category, AVG(confidence) as avg, COUNT(1) as count FROM decisions WHERE createdAt >= ? AND createdAt < ? GROUP BY category HAVING COUNT(1) >= 2;',
     [weekStartAt, weekEndAt]
@@ -497,6 +498,122 @@ export async function getWeeklyReviewSnapshot(nowMs: number = Date.now(), weekSt
     mostCommonCategory,
     confidenceTrend,
     directionStatus,
+  };
+}
+
+export async function getWeeklyReviewDetail(nowMs: number = Date.now(), weekStartDay: number = 1): Promise<{
+  windowStartAt: number;
+  windowEndAt: number;
+  decisionCount: number;
+  mostCommonCategory: DecisionCategory | null;
+  decisionFocus: { focusCategory: DecisionCategory | null; isTie: boolean };
+  confidenceByCategoryInsight: { kind: 'MORE' | 'LESS' | 'NONE'; category: DecisionCategory | null };
+  focusCopy: string;
+  avgConfidence: number | null;
+  confidenceTrend: ConfidenceTrend;
+  directionStatus: DirectionStatus;
+  notablePatterns: string[];
+}> {
+  const db = await getDb();
+  const weekRange = getCurrentWeekRange(nowMs, weekStartDay);
+  const prevWeekRange = getPreviousWeekRange(nowMs, weekStartDay);
+  const windowStartAt = weekRange.start.getTime();
+  const windowEndAt = weekRange.end.getTime();
+  const prevWindowStartAt = prevWeekRange.start.getTime();
+  const prevWindowEndAt = prevWeekRange.end.getTime();
+
+  const countRow = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(1) as count FROM decisions WHERE createdAt >= ? AND createdAt < ?;',
+    [windowStartAt, windowEndAt]
+  );
+  const decisionCount = Number(countRow?.count ?? 0);
+
+  const topCategoryRows = await db.getAllAsync<{ category: string; count: number }>(
+    'SELECT category, COUNT(1) as count FROM decisions WHERE createdAt >= ? AND createdAt < ? GROUP BY category ORDER BY count DESC LIMIT 2;',
+    [windowStartAt, windowEndAt]
+  );
+
+  let mostCommonCategory: DecisionCategory | null = null;
+  let focusCopy: string;
+  let focusIsTie = false;
+  if (topCategoryRows.length === 0) {
+    focusCopy = 'No clear focus yet — your decisions are spread across a few areas.';
+  } else {
+    const top = topCategoryRows[0];
+    const second = topCategoryRows.length > 1 ? topCategoryRows[1] : null;
+    if (second && Number(second.count) === Number(top.count)) {
+      focusIsTie = true;
+      focusCopy = 'No clear focus yet — your decisions are spread across a few areas.';
+      mostCommonCategory = null;
+    } else {
+      mostCommonCategory = String(top.category) as DecisionCategory;
+      focusCopy = decisionFocusCopy(mostCommonCategory);
+    }
+  }
+
+  const avgRow = await db.getFirstAsync<{ avg: number | null }>(
+    'SELECT AVG(confidence) as avg FROM decisions WHERE createdAt >= ? AND createdAt < ?;',
+    [windowStartAt, windowEndAt]
+  );
+  const avgConfidenceValue = avgRow?.avg === null || avgRow?.avg === undefined ? null : Number(avgRow.avg);
+
+  const prevAvgRow = await db.getFirstAsync<{ avg: number | null }>(
+    'SELECT AVG(confidence) as avg FROM decisions WHERE createdAt >= ? AND createdAt < ?;',
+    [prevWindowStartAt, prevWindowEndAt]
+  );
+  const prevCountRow = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(1) as count FROM decisions WHERE createdAt >= ? AND createdAt < ?;',
+    [prevWindowStartAt, prevWindowEndAt]
+  );
+  const prevAvgConfidenceValue = prevAvgRow?.avg === null || prevAvgRow?.avg === undefined ? null : Number(prevAvgRow.avg);
+  const prevCount = Number(prevCountRow?.count ?? 0);
+  const confidenceTrend: ConfidenceTrend =
+    decisionCount >= 1 && prevCount >= 1 ? computeConfidenceTrend(avgConfidenceValue, prevAvgConfidenceValue) : 'NA';
+
+  const directionStatus: DirectionStatus = computeDirectionStatus(decisionCount, avgConfidenceValue);
+
+  // Confidence-by-category insight (weekly, min 2 decisions per category).
+  // Deterministic: we avoid new thresholds and use the same eligibility rule as Insights.
+  const categoryAvgRows = await db.getAllAsync<{ category: string; avg: number | null; count: number }>(
+    'SELECT category, AVG(confidence) as avg, COUNT(1) as count FROM decisions WHERE createdAt >= ? AND createdAt < ? GROUP BY category HAVING COUNT(1) >= 2;',
+    [windowStartAt, windowEndAt]
+  );
+
+  const eligibleCategoryAvgs = categoryAvgRows
+    .map((r) => ({
+      category: String(r.category) as DecisionCategory,
+      avg: r.avg === null || r.avg === undefined ? null : Number(r.avg),
+      count: Number(r.count ?? 0),
+    }))
+    .filter((r) => r.avg !== null);
+
+  let confidenceByCategoryInsight: { kind: 'MORE' | 'LESS' | 'NONE'; category: DecisionCategory | null } = {
+    kind: 'NONE',
+    category: null,
+  };
+
+  if (eligibleCategoryAvgs.length === 1) {
+    confidenceByCategoryInsight = { kind: 'MORE', category: eligibleCategoryAvgs[0].category };
+  } else if (eligibleCategoryAvgs.length >= 2) {
+    const sorted = [...eligibleCategoryAvgs].sort((a, b) => (b.avg ?? 0) - (a.avg ?? 0));
+    const most = sorted[0].category;
+    const least = sorted[sorted.length - 1].category;
+    confidenceByCategoryInsight =
+      directionStatus === 'DRIFTING' ? { kind: 'LESS', category: least } : { kind: 'MORE', category: most };
+  }
+
+  return {
+    windowStartAt,
+    windowEndAt,
+    decisionCount,
+    mostCommonCategory,
+    decisionFocus: { focusCategory: mostCommonCategory, isTie: focusIsTie },
+    confidenceByCategoryInsight,
+    focusCopy,
+    avgConfidence: avgConfidenceValue,
+    confidenceTrend,
+    directionStatus,
+    notablePatterns: [],
   };
 }
 

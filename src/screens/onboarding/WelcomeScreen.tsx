@@ -16,7 +16,7 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
     <View style={[styles.container, { backgroundColor: c.background }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: c.textPrimary }]}>CNSDR</Text>
-        <Text style={[styles.subtitle, { color: c.textSecondary }]}>Track decisions, not money</Text>
+        <Text style={[styles.subtitle, { color: c.textSecondary }]}>Reflect on your decisions.</Text>
       </View>
 
       <Card>

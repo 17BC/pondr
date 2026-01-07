@@ -19,6 +19,7 @@ describe('reflection unlock (rolling 7-day ritual)', () => {
     const state = getReviewUnlockState({
       nowMs,
       days: 7,
+      weekStartDay: 1,
       firstAppUseAtIso: firstUseIso,
       lastReflectionAtIso: null,
       hasAtLeastOneDecisionInWindow: true,
@@ -29,12 +30,13 @@ describe('reflection unlock (rolling 7-day ritual)', () => {
   });
 
   test('data-locked state when time unlocked but no decisions in window', () => {
-    const nowMs = new Date('2025-01-10T00:00:00.000Z').getTime();
+    const nowMs = new Date('2025-01-12T12:00:00.000Z').getTime();
     const firstUseIso = '2025-01-01T00:00:00.000Z';
 
     const state = getReviewUnlockState({
       nowMs,
       days: 7,
+      weekStartDay: 1,
       firstAppUseAtIso: firstUseIso,
       lastReflectionAtIso: null,
       hasAtLeastOneDecisionInWindow: false,
@@ -45,12 +47,13 @@ describe('reflection unlock (rolling 7-day ritual)', () => {
   });
 
   test('unlocked state when time unlocked and has >=1 decision', () => {
-    const nowMs = new Date('2025-01-10T00:00:00.000Z').getTime();
+    const nowMs = new Date('2025-01-12T12:00:00.000Z').getTime();
     const firstUseIso = '2025-01-01T00:00:00.000Z';
 
     const state = getReviewUnlockState({
       nowMs,
       days: 7,
+      weekStartDay: 1,
       firstAppUseAtIso: firstUseIso,
       lastReflectionAtIso: null,
       hasAtLeastOneDecisionInWindow: true,
@@ -61,13 +64,15 @@ describe('reflection unlock (rolling 7-day ritual)', () => {
   });
 
   test('cached state when cached generatedAt is within current window', () => {
-    const nowMs = new Date('2025-01-10T00:00:00.000Z').getTime();
+    // Last day for weekStartDay=1 (Mon) is Sunday.
+    const nowMs = new Date('2025-01-12T12:00:00.000Z').getTime();
     const window = getRollingWindow(7, nowMs);
     const cachedIso = new Date(window.start.getTime() + 60 * 60 * 1000).toISOString();
 
     const state = getReviewUnlockState({
       nowMs,
       days: 7,
+      weekStartDay: 1,
       firstAppUseAtIso: '2025-01-01T00:00:00.000Z',
       lastReflectionAtIso: '2025-01-02T00:00:00.000Z',
       hasAtLeastOneDecisionInWindow: true,
@@ -75,5 +80,43 @@ describe('reflection unlock (rolling 7-day ritual)', () => {
     });
 
     expect(state.kind).toBe('CACHED_THIS_WINDOW');
+  });
+
+  test('cached reflection still weekday-locked when not last day', () => {
+    // weekStartDay=1 -> last day is Sunday. Pick a Friday.
+    const nowMs = new Date('2025-01-10T12:00:00.000Z').getTime();
+    const window = getRollingWindow(7, nowMs);
+    const cachedIso = new Date(window.start.getTime() + 60 * 60 * 1000).toISOString();
+
+    const state = getReviewUnlockState({
+      nowMs,
+      days: 7,
+      weekStartDay: 1,
+      firstAppUseAtIso: '2025-01-01T00:00:00.000Z',
+      lastReflectionAtIso: '2025-01-02T00:00:00.000Z',
+      hasAtLeastOneDecisionInWindow: true,
+      cachedGeneratedAtIso: cachedIso,
+    });
+
+    expect(state.kind).toBe('LOCKED_WEEKDAY');
+  });
+
+  test('weekday-locked when not last day of configured week (week starts Wednesday)', () => {
+    // weekStartDay = 3 (Wednesday). Last day is Tuesday.
+    // Pick a Monday: should be locked.
+    const nowMs = new Date('2025-01-13T12:00:00.000Z').getTime();
+    const firstUseIso = '2025-01-01T00:00:00.000Z';
+
+    const state = getReviewUnlockState({
+      nowMs,
+      days: 7,
+      weekStartDay: 3,
+      firstAppUseAtIso: firstUseIso,
+      lastReflectionAtIso: null,
+      hasAtLeastOneDecisionInWindow: true,
+      cachedGeneratedAtIso: null,
+    });
+
+    expect(state.kind).toBe('LOCKED_WEEKDAY');
   });
 });

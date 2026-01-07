@@ -8,7 +8,7 @@ import { Card } from '../components/common/Card';
 import { DirectionStatusBadge } from '../components/decision/DirectionStatusBadge';
 import { colors } from '../theme/colors';
 import { useDecisionEventsStore } from '../store/useDecisionEventsStore';
-import { getRollingReviewSnapshot } from '../services/database/decisions';
+import { getWeeklyReviewDetail } from '../services/database/decisions';
 import { categoryLabel } from '../utils/categoryLabel';
 import { generateRollingReflection } from '../services/ai/reviewReflection';
 import { getGentleQuestionHistory, setGentleQuestionHistory } from '../review/gentleQuestionHistoryStorage';
@@ -20,8 +20,9 @@ import {
   setLastReflectionAt,
   setRollingReflectionCache,
 } from '../review/reflectionRitualStorage';
-import { getReviewUnlockState, getRollingWindow } from '../review/reflectionUnlock';
-import { confidenceTrendCopy } from '../confidence/confidence';
+import { getReviewUnlockState } from '../review/reflectionUnlock';
+import { confidenceTrendCopy, getCurrentWeekRange } from '../confidence/confidence';
+import { getWeekStartDay } from '../settings/weekSettings';
 
 export function ReviewScreen(): React.JSX.Element {
   const c = colors.light;
@@ -30,7 +31,7 @@ export function ReviewScreen(): React.JSX.Element {
 
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [snapshot, setSnapshot] = useState<
-    | (Awaited<ReturnType<typeof getRollingReviewSnapshot>> & { windowStartIso: string; windowEndIso: string })
+    | (Awaited<ReturnType<typeof getWeeklyReviewDetail>> & { windowStartIso: string; windowEndIso: string })
     | null
   >(null);
   const [reflection, setReflection] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export function ReviewScreen(): React.JSX.Element {
   const [firstAppUseAtIso, setFirstAppUseAtIso] = useState<string | null>(null);
   const [lastReflectionAtIso, setLastReflectionAtIso] = useState<string | null>(null);
   const [cachedGeneratedAtIso, setCachedGeneratedAtIso] = useState<string | null>(null);
+  const [weekStartDay, setWeekStartDay] = useState<number>(1);
 
   const refresh = async (): Promise<void> => {
     setStatus('loading');
@@ -49,20 +51,33 @@ export function ReviewScreen(): React.JSX.Element {
       const nowMs = Date.now();
       const firstUse = await ensureFirstAppUseAt(nowMs);
       const lastAt = await getLastReflectionAt();
-      const window = getRollingWindow(7, nowMs);
       const cache = await getRollingReflectionCache();
+
+      const weekStartDay = await getWeekStartDay();
+      setWeekStartDay(weekStartDay);
+      const s = await getWeeklyReviewDetail(nowMs, weekStartDay);
 
       setFirstAppUseAtIso(firstUse);
       setLastReflectionAtIso(lastAt);
       setCachedGeneratedAtIso(cache?.generatedAt ?? null);
 
-      const s = await getRollingReviewSnapshot({ nowMs, days: 7 });
-      setSnapshot({ ...s, windowStartIso: window.start.toISOString(), windowEndIso: window.end.toISOString() });
+      setSnapshot({
+        ...s,
+        windowStartIso: new Date(s.windowStartAt).toISOString(),
+        windowEndIso: new Date(s.windowEndAt).toISOString(),
+      });
 
+      const windowStartMs = s.windowStartAt;
+      const windowEndMs = s.windowEndAt;
       const cacheIsForWindow =
-        cache && new Date(cache.generatedAt).getTime() >= window.start.getTime() && new Date(cache.generatedAt).getTime() <= window.end.getTime();
+        cache && new Date(cache.generatedAt).getTime() >= windowStartMs && new Date(cache.generatedAt).getTime() <= windowEndMs;
 
-      if (cacheIsForWindow) {
+      const week = getCurrentWeekRange(nowMs, weekStartDay);
+      const startOfLastDayMs = new Date(week.end.getTime() - 24 * 60 * 60 * 1000).setHours(0, 0, 0, 0);
+      const todayStartMs = new Date(nowMs).setHours(0, 0, 0, 0);
+      const isLastDayOfWeek = todayStartMs >= startOfLastDayMs && todayStartMs < week.end.getTime();
+
+      if (cacheIsForWindow && isLastDayOfWeek) {
         setReflection(cache.reflectionText);
         setObservedPattern(cache.observedPatternText);
         setQuestion(cache.gentleQuestionText);
@@ -76,6 +91,61 @@ export function ReviewScreen(): React.JSX.Element {
       const message = e instanceof Error ? e.message : 'Could not load your weekly review.';
       setError(message);
       setStatus('error');
+    }
+  };
+
+  const onGenerateLastWeekDev = async (): Promise<void> => {
+    if (!__DEV__ || generating) return;
+
+    setGenerating(true);
+    setError(null);
+    try {
+      const weekStartDay = await getWeekStartDay();
+      const nowMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const s = await getWeeklyReviewDetail(nowMs, weekStartDay);
+      const history = await getGentleQuestionHistory();
+
+      const created = await generateRollingReflection({
+        windowStartIso: new Date(s.windowStartAt).toISOString(),
+        windowEndIso: new Date(s.windowEndAt).toISOString(),
+        metrics: {
+          decisionCount: s.decisionCount,
+          focusCopy: s.focusCopy,
+          mostCommonCategory: s.mostCommonCategory,
+          decisionFocus: {
+            focusCategory: s.decisionFocus.focusCategory ? categoryLabel(s.decisionFocus.focusCategory) : null,
+            isTie: s.decisionFocus.isTie,
+          },
+          confidenceByCategoryInsight: {
+            kind: s.confidenceByCategoryInsight.kind,
+            category: s.confidenceByCategoryInsight.category ? categoryLabel(s.confidenceByCategoryInsight.category) : null,
+          },
+          avgConfidence: s.avgConfidence,
+          confidenceTrend: s.confidenceTrend,
+          directionStatus: s.directionStatus,
+          notablePatterns: s.notablePatterns,
+        },
+      });
+
+      const selected = selectGentleQuestion(
+        {
+          decisionCount: s.decisionCount,
+          mostCommonCategory: s.mostCommonCategory,
+          confidenceTrend: s.confidenceTrend,
+          directionStatus: s.directionStatus,
+        },
+        history,
+        { cooldownWeeks: 6 }
+      );
+
+      setReflection(created.reflectionText);
+      setObservedPattern(created.observedPatternText);
+      setQuestion(selected.renderedText);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Could not generate a reflection.';
+      setError(message);
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -94,16 +164,21 @@ export function ReviewScreen(): React.JSX.Element {
     return getReviewUnlockState({
       nowMs: Date.now(),
       days: 7,
+      weekStartDay,
       firstAppUseAtIso,
       lastReflectionAtIso,
       hasAtLeastOneDecisionInWindow: snapshot.decisionCount >= 1,
       cachedGeneratedAtIso,
     });
-  }, [cachedGeneratedAtIso, firstAppUseAtIso, lastReflectionAtIso, snapshot]);
+  }, [cachedGeneratedAtIso, firstAppUseAtIso, lastReflectionAtIso, snapshot, weekStartDay]);
 
   const canGenerate = useMemo(() => {
     return !generating && snapshot !== null && unlockState?.kind === 'UNLOCKED';
   }, [generating, snapshot, unlockState]);
+
+  const canGenerateDevLastWeek = useMemo(() => {
+    return !generating && __DEV__;
+  }, [generating]);
 
   const onGenerate = async (): Promise<void> => {
     if (!snapshot || generating) return;
@@ -121,6 +196,14 @@ export function ReviewScreen(): React.JSX.Element {
           decisionCount: snapshot.decisionCount,
           focusCopy: snapshot.focusCopy,
           mostCommonCategory: snapshot.mostCommonCategory,
+          decisionFocus: {
+            focusCategory: snapshot.decisionFocus.focusCategory ? categoryLabel(snapshot.decisionFocus.focusCategory) : null,
+            isTie: snapshot.decisionFocus.isTie,
+          },
+          confidenceByCategoryInsight: {
+            kind: snapshot.confidenceByCategoryInsight.kind,
+            category: snapshot.confidenceByCategoryInsight.category ? categoryLabel(snapshot.confidenceByCategoryInsight.category) : null,
+          },
           avgConfidence: snapshot.avgConfidence,
           confidenceTrend: snapshot.confidenceTrend,
           directionStatus: snapshot.directionStatus,
@@ -227,6 +310,10 @@ export function ReviewScreen(): React.JSX.Element {
                   <Text style={[styles.cardBody, { color: c.textSecondary }]}>
                     Your next reflection will be ready in {unlockState.daysRemaining} days.
                   </Text>
+                ) : unlockState?.kind === 'LOCKED_WEEKDAY' ? (
+                  <Text style={[styles.cardBody, { color: c.textSecondary }]}>
+                    Your reflection is available on the last day of your week (in {unlockState.daysRemaining} days).
+                  </Text>
                 ) : unlockState?.kind === 'LOCKED_DATA' ? (
                   <Text style={[styles.cardBody, { color: c.textSecondary }]}>Log at least one decision this week to generate a reflection.</Text>
                 ) : unlockState?.kind === 'UNLOCKED' ? (
@@ -237,6 +324,16 @@ export function ReviewScreen(): React.JSX.Element {
                   onPress={onGenerate}
                   disabled={!canGenerate}
                 />
+                {__DEV__ ? (
+                  <View style={styles.devButtonSpacer}>
+                    <AppButton
+                      title={generating ? 'Generating…' : 'Generate Last Week (Dev)'}
+                      onPress={onGenerateLastWeekDev}
+                      disabled={!canGenerateDevLastWeek}
+                      variant="ghost"
+                    />
+                  </View>
+                ) : null}
               </View>
             ) : (
               <>
@@ -325,13 +422,18 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   badgeRow: {
-    marginTop: 12,
+    marginTop: 10,
+    alignItems: 'flex-start',
   },
   footer: {
     marginTop: 12,
+    gap: 10,
+  },
+  devButtonSpacer: {
+    marginTop: 6,
   },
   reflectionText: {
-    marginTop: 12,
+    marginTop: 10,
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '600',

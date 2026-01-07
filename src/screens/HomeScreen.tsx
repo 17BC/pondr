@@ -30,7 +30,7 @@ export function HomeScreen(): React.JSX.Element {
   return (
     <View style={[styles.container, { backgroundColor: c.background }]}>
       <Text style={[styles.title, { color: c.textPrimary }]}>CNSDR</Text>
-      <Text style={[styles.subtitle, { color: c.textSecondary }]}>Track decisions, not money</Text>
+      <Text style={[styles.subtitle, { color: c.textSecondary }]}>Reflect on your decisions.</Text>
 
       <View style={styles.spacer} />
 
