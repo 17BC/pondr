@@ -66,12 +66,13 @@ export function confidenceTrendCopy(trend: ConfidenceTrend): string {
 }
 
 export function computeDirectionStatus(weekCount: number, weekAvg: number | null): DirectionStatus {
-  if (weekCount === 0) return 'DRIFTING';
+  if (weekCount === 0) return 'NO_SIGNAL';
 
   const avg = weekAvg ?? 0;
 
   if (weekCount === 1 || weekCount === 2) {
-    return avg < 2.5 ? 'DRIFTING' : 'STABLE';
+    if (weekAvg !== null && avg < 2.5) return 'DRIFTING';
+    return 'STABLE';
   }
 
   if (avg >= 4.0) return 'GROWING';
@@ -89,6 +90,13 @@ export function avgConfidenceLabel(input: { count: number; avg: number | null })
 }
 
 export function directionStatusCopy(status: DirectionStatus): { title: string; subtext: string } {
+  if (status === 'NO_SIGNAL') {
+    return {
+      title: 'Not enough data yet',
+      subtext: 'Patterns will appear as you log decisions over time.',
+    };
+  }
+
   const subtext = 'This reflects recent confidence and consistency.';
   if (status === 'GROWING') return { title: 'Your current direction looks Growing.', subtext };
   if (status === 'STABLE') return { title: 'Your current direction looks Stable.', subtext };

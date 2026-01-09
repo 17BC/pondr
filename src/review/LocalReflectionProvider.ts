@@ -7,7 +7,7 @@ import {
 
 export type LocalReflectionInputs = {
   decisionCount: number;
-  directionStatus: 'GROWING' | 'STABLE' | 'DRIFTING';
+  directionStatus: 'NO_SIGNAL' | 'GROWING' | 'STABLE' | 'DRIFTING';
   confidenceTrend: 'UP' | 'DOWN' | 'STEADY' | 'NA';
   decisionFocus: {
     focusCategory: string | null;

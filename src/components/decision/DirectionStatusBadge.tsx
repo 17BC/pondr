@@ -7,6 +7,8 @@ import type { DirectionStatus } from '../../models/decision';
 export function DirectionStatusBadge(props: { status: DirectionStatus }): React.JSX.Element {
   const c = colors.light;
 
+  if (props.status === 'NO_SIGNAL') return <></>;
+
   const tone =
     props.status === 'GROWING'
       ? { bg: c.primaryMuted, fg: c.primary }

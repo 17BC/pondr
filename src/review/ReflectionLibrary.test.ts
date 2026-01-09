@@ -4,7 +4,7 @@ describe('ReflectionLibrary selection', () => {
   test('decisionCount 0 -> NO_DECISIONS', () => {
     const inputs: ReflectionInputs = {
       decisionCount: 0,
-      directionStatus: 'DRIFTING',
+      directionStatus: 'NO_SIGNAL',
       confidenceTrend: 'NA',
       decisionFocus: { focusCategory: null, isTie: true },
       confidenceByCategoryInsight: { kind: 'NONE', category: null },

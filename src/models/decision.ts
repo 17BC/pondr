@@ -13,7 +13,7 @@ export type ConfidenceScore = 1 | 2 | 3 | 4 | 5;
 export type TradeoffGain = 'time' | 'energy' | 'growth' | 'peace' | 'fun';
 export type TradeoffLoss = 'stress' | 'time' | 'flexibility' | 'pressure';
 
-export type DirectionStatus = 'GROWING' | 'STABLE' | 'DRIFTING';
+export type DirectionStatus = 'NO_SIGNAL' | 'GROWING' | 'STABLE' | 'DRIFTING';
 
 export interface Decision {
   id: string;

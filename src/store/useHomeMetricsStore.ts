@@ -23,7 +23,7 @@ export const useHomeMetricsStore = create<HomeMetricsState>((set) => ({
   metrics: {
     weekDecisionCount: 0,
     avgConfidence: 0,
-    direction: 'STABLE',
+    direction: 'NO_SIGNAL',
     confidenceTrend: 'NA',
   },
   refresh: async () => {

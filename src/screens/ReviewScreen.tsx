@@ -10,6 +10,7 @@ import { colors } from '../theme/colors';
 import { useDecisionEventsStore } from '../store/useDecisionEventsStore';
 import { getWeeklyReviewDetail } from '../services/database/decisions';
 import { categoryLabel } from '../utils/categoryLabel';
+import { directionStatusCopy } from '../confidence/confidence';
 import { generateRollingReflection } from '../services/ai/reviewReflection';
 import { getGentleQuestionHistory, setGentleQuestionHistory } from '../review/gentleQuestionHistoryStorage';
 import { nextGentleQuestionHistory, selectGentleQuestion } from '../review/selectGentleQuestion';
@@ -291,6 +292,15 @@ export function ReviewScreen(): React.JSX.Element {
             <View style={styles.metricRow}>
               <Text style={[styles.metricLabel, { color: c.textSecondary }]}>Confidence trend</Text>
               <Text style={[styles.metricValue, { color: c.textPrimary }]}>{confidenceTrendCopy(snapshot.confidenceTrend)}</Text>
+            </View>
+
+            <View style={styles.metricRow}>
+              <Text style={[styles.metricLabel, { color: c.textSecondary }]}>Direction</Text>
+              <Text style={[styles.metricValue, { color: c.textPrimary }]}>
+                {snapshot.directionStatus === 'NO_SIGNAL'
+                  ? 'Not enough data yet'
+                  : directionStatusCopy(snapshot.directionStatus).title}
+              </Text>
             </View>
 
             <View style={styles.badgeRow}>

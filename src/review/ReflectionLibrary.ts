@@ -9,7 +9,7 @@ export type Pace = 'MORE' | 'FEWER' | 'TYPICAL' | 'NA';
 
 export type ReflectionInputs = {
   decisionCount: number;
-  directionStatus: 'GROWING' | 'STABLE' | 'DRIFTING';
+  directionStatus: 'NO_SIGNAL' | 'GROWING' | 'STABLE' | 'DRIFTING';
   confidenceTrend: 'UP' | 'DOWN' | 'STEADY' | 'NA';
   decisionFocus: {
     focusCategory: string | null;

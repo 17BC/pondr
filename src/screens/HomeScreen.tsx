@@ -50,9 +50,20 @@ export function HomeScreen(): React.JSX.Element {
         <Text style={[styles.cardSubtitle, { color: c.textSecondary }]}>
           A calm snapshot of where your recent decisions are pointing.
         </Text>
-        <Text style={[styles.cardSubtitle, { color: c.textSecondary }]}>
-          {directionStatusCopy(metrics.direction).subtext}
-        </Text>
+        {metrics.direction === 'NO_SIGNAL' ? (
+          <>
+            <Text style={[styles.cardSubtitle, { color: c.textSecondary }]}>
+              {directionStatusCopy(metrics.direction).title}
+            </Text>
+            <Text style={[styles.cardSubtitle, { color: c.textSecondary }]}>
+              {directionStatusCopy(metrics.direction).subtext}
+            </Text>
+          </>
+        ) : (
+          <Text style={[styles.cardSubtitle, { color: c.textSecondary }]}>
+            {directionStatusCopy(metrics.direction).subtext}
+          </Text>
+        )}
         <View style={styles.metricsRow}>
           <Text style={[styles.metricText, { color: c.textSecondary }]}>
             Decisions this week: {metrics.weekDecisionCount}
@@ -69,9 +80,11 @@ export function HomeScreen(): React.JSX.Element {
             );
           })()}
         </View>
-        <Text style={[styles.trendText, { color: c.textSecondary }]}>
-          {confidenceTrendCopy(metrics.confidenceTrend)}
-        </Text>
+        {metrics.direction === 'NO_SIGNAL' ? null : (
+          <Text style={[styles.trendText, { color: c.textSecondary }]}>
+            {confidenceTrendCopy(metrics.confidenceTrend)}
+          </Text>
+        )}
         <View style={styles.badgeRow}>
           <DirectionStatusBadge status={metrics.direction} />
         </View>

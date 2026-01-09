@@ -32,6 +32,9 @@ export function decisionPaceCopy(pace: 'more' | 'fewer'): string {
 }
 
 export function directionStatusCopy(status: DirectionStatus): string {
+  if (status === 'NO_SIGNAL') {
+    return 'Not enough data yet. Patterns will appear as you log decisions over time.';
+  }
   const label = status === 'GROWING' ? 'Growing' : status === 'STABLE' ? 'Stable' : 'Drifting';
   return `Your current direction looks ${label}.`;
 }
