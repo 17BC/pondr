@@ -82,9 +82,11 @@ export function InsightsScreen(): React.JSX.Element {
   );
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: c.background }]} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: c.primaryMuted }]} contentContainerStyle={styles.content}>
       <Text style={[styles.title, { color: c.textPrimary }]}>Insights</Text>
-      <Text style={[styles.subtitle, { color: c.textSecondary }]}>Patterns from your past decisions — kept simple.</Text>
+      <Text style={[styles.subtitle, { color: c.textSecondary }]}>
+        These insights reflect patterns from your recent decisions.
+      </Text>
 
       <View style={styles.spacer} />
 
@@ -100,7 +102,7 @@ export function InsightsScreen(): React.JSX.Element {
       ) : data.cards.length === 0 ? (
         <Card>
           <Text style={[styles.cardTitle, { color: c.textPrimary }]}>No data yet</Text>
-          <Text style={[styles.cardBody, { color: c.textSecondary }]}>Log a few decisions to see patterns emerge.</Text>
+          <Text style={[styles.cardBody, { color: c.textSecondary }]}>Log a few decisions to see patterns over time.</Text>
         </Card>
       ) : (
         <>

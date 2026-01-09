@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppButton } from '../components/common/AppButton';
 import { Card } from '../components/common/Card';
 import { colors } from '../theme/colors';
+import { scheduleDevTestNotification } from '../notifications/notificationScheduler';
 import { useOnboardingStore } from '../store/useOnboardingStore';
 import type { WeekStartDay } from '../settings/weekSettings';
 import { getWeekStartDay, setWeekStartDay } from '../settings/weekSettings';
@@ -46,9 +47,11 @@ export function SettingsScreen(): React.JSX.Element {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: c.background }]}>
+    <View style={[styles.container, { backgroundColor: c.primaryMuted }]}>
       <Text style={[styles.title, { color: c.textPrimary }]}>Settings</Text>
-      <Text style={[styles.subtitle, { color: c.textSecondary }]}>Export, privacy, about.</Text>
+      <Text style={[styles.subtitle, { color: c.textSecondary }]}>
+        PONDR is a lightweight decision journaling app. Log decisions as they happen and reflect on patterns in focus and confidence over time—without advice, goals, or judgment.
+      </Text>
 
       <View style={styles.sectionSpacer} />
 
@@ -73,7 +76,7 @@ export function SettingsScreen(): React.JSX.Element {
             );
           })}
         </View>
-        <Text style={[styles.cardText, { color: c.textSecondary, marginTop: 10 }]}>This affects “This week” counts in Home and Insights.</Text>
+        <Text style={[styles.cardText, { color: c.textSecondary, marginTop: 10 }]}>This affects weekly counts in Home and Insights.</Text>
       </Card>
 
       <View style={styles.sectionSpacer} />
@@ -86,6 +89,15 @@ export function SettingsScreen(): React.JSX.Element {
         <View style={styles.buttonRow}>
           <AppButton title="Reset Onboarding" variant="secondary" onPress={resetOnboarding} />
         </View>
+        {__DEV__ ? (
+          <View style={styles.buttonRow}>
+            <AppButton
+              title="Test Notification (60s)"
+              variant="secondary"
+              onPress={() => scheduleDevTestNotification(60)}
+            />
+          </View>
+        ) : null}
       </Card>
     </View>
   );

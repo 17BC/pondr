@@ -85,7 +85,7 @@ export function DecisionEditScreen({ route, navigation }: Props): React.JSX.Elem
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: c.background }]}
+      style={[styles.container, { backgroundColor: c.primaryMuted }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {status === 'loading' ? (

@@ -28,9 +28,9 @@ export function HomeScreen(): React.JSX.Element {
   }, [refresh, saveVersion]);
 
   return (
-    <View style={[styles.container, { backgroundColor: c.background }]}>
-      <Text style={[styles.title, { color: c.textPrimary }]}>CNSDR</Text>
-      <Text style={[styles.subtitle, { color: c.textSecondary }]}>Reflect on your decisions.</Text>
+    <View style={[styles.container, { backgroundColor: c.primaryMuted }]}>
+      <Text style={[styles.title, { color: c.textPrimary }]}>PONDR</Text>
+      <Text style={[styles.subtitle, { color: c.textSecondary }]}>Reflect on the decisions that matter.</Text>
 
       <View style={styles.spacer} />
 
@@ -55,7 +55,7 @@ export function HomeScreen(): React.JSX.Element {
         </Text>
         <View style={styles.metricsRow}>
           <Text style={[styles.metricText, { color: c.textSecondary }]}>
-            This week: {metrics.weekDecisionCount}
+            Decisions this week: {metrics.weekDecisionCount}
           </Text>
           {(() => {
             const label = avgConfidenceLabel({

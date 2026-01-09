@@ -9,7 +9,7 @@ export const INSIGHT_TITLES = {
   confidence_trend: 'Confidence Trend',
   decision_pace: 'Decision Pace',
   direction_status: 'Direction Status',
-  repeated_choice_pattern: 'Repeated Choice Pattern',
+  repeated_choice_pattern: 'Repeated Pattern',
 } as const;
 
 export function decisionFocusCopy(category: DecisionCategory): string {

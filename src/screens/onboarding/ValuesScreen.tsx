@@ -37,7 +37,7 @@ export function ValuesScreen({ navigation }: Props): React.JSX.Element {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: c.background }]}>
+    <View style={[styles.container, { backgroundColor: c.primaryMuted }]}>
       <Text style={[styles.title, { color: c.textPrimary }]}>What matters to you?</Text>
       <Text style={[styles.subtitle, { color: c.textSecondary }]}>Optional — pick a few. You can change this later.</Text>
 

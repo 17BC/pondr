@@ -91,7 +91,7 @@ export function QuickLogScreen(): React.JSX.Element {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: c.background }]}
+      style={[styles.container, { backgroundColor: c.primaryMuted }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.header}>

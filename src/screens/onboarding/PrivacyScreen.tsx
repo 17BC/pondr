@@ -15,9 +15,9 @@ export function PrivacyScreen(_props: Props): React.JSX.Element {
   const complete = useOnboardingStore((s) => s.complete);
 
   return (
-    <View style={[styles.container, { backgroundColor: c.background }]}>
+    <View style={[styles.container, { backgroundColor: c.primaryMuted }]}>
       <Text style={[styles.title, { color: c.textPrimary }]}>Private by default</Text>
-      <Text style={[styles.subtitle, { color: c.textSecondary }]}>CNSDR is designed for reflection — not surveillance.</Text>
+      <Text style={[styles.subtitle, { color: c.textSecondary }]}>PONDR is designed for reflection — not surveillance.</Text>
 
       <View style={styles.spacer} />
 
@@ -37,7 +37,7 @@ export function PrivacyScreen(_props: Props): React.JSX.Element {
       </Card>
 
       <View style={styles.footer}>
-        <AppButton title="Start using CNSDR" onPress={complete} />
+        <AppButton title="Start using PONDR" onPress={complete} />
       </View>
     </View>
   );

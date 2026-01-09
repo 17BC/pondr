@@ -56,7 +56,7 @@ export function DecisionDetailsScreen({ route, navigation }: Props): React.JSX.E
 
   return (
     <ScrollView
-      style={[styles.container, { backgroundColor: c.background }]}
+      style={[styles.container, { backgroundColor: c.primaryMuted }]}
       contentContainerStyle={styles.content}
     >
       {status === 'loading' ? (

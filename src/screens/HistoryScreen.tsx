@@ -32,7 +32,7 @@ export function HistoryScreen(): React.JSX.Element {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: c.background }]}>
+    <View style={[styles.container, { backgroundColor: c.primaryMuted }]}>
       <Text style={[styles.title, { color: c.textPrimary }]}>History</Text>
       <Text style={[styles.subtitle, { color: c.textSecondary }]}>Search and filter your decisions.</Text>
 

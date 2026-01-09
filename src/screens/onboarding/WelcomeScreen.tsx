@@ -13,15 +13,17 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
   const c = colors.light;
 
   return (
-    <View style={[styles.container, { backgroundColor: c.background }]}>
+    <View style={[styles.container, { backgroundColor: c.primaryMuted }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: c.textPrimary }]}>CNSDR</Text>
-        <Text style={[styles.subtitle, { color: c.textSecondary }]}>Reflect on your decisions.</Text>
+        <Text style={[styles.title, { color: c.textPrimary }]}>PONDR</Text>
+        <Text style={[styles.subtitle, { color: c.textSecondary }]}>Reflect on the decisions that matter.</Text>
       </View>
 
       <Card>
-        <Text style={[styles.copy, { color: c.textPrimary }]}>A calm place to slow down, reflect, and choose with clarity.</Text>
-        <Text style={[styles.copy, { color: c.textPrimary }]}>No budgets. No bank connections. Just direction.</Text>
+        <Text style={[styles.copy, { color: c.textPrimary }]}>
+          A simple way to look back on decisions and notice patterns over time.
+        </Text>
+        <Text style={[styles.copy, { color: c.textPrimary }]}>No advice, goals, or judgment.</Text>
       </Card>
 
       <View style={styles.footer}>

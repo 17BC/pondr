@@ -23,7 +23,7 @@ export const QUESTION_BUCKETS: Record<GentleQuestionBucketId, GentleQuestion[]> 
     {
       id: 'LOW_DATA_2',
       bucketId: 'LOW_DATA',
-      text: 'What do you notice about how these recent choices felt?',
+      text: 'What do you notice about how these recent decisions felt?',
     },
     {
       id: 'LOW_DATA_3',
@@ -33,7 +33,7 @@ export const QUESTION_BUCKETS: Record<GentleQuestionBucketId, GentleQuestion[]> 
     {
       id: 'LOW_DATA_4',
       bucketId: 'LOW_DATA',
-      text: 'How did you feel while making these choices?',
+      text: 'How did you feel while making these decisions?',
     },
     {
       id: 'LOW_DATA_5',
@@ -50,12 +50,12 @@ export const QUESTION_BUCKETS: Record<GentleQuestionBucketId, GentleQuestion[]> 
     {
       id: 'DIRECTION_GROWING_2',
       bucketId: 'DIRECTION_GROWING',
-      text: 'What do these recent choices tell you about what’s working right now?',
+      text: 'What do these recent decisions tell you about what’s working right now?',
     },
     {
       id: 'DIRECTION_GROWING_3',
       bucketId: 'DIRECTION_GROWING',
-      text: 'What feels steady or supportive about the way you’ve been deciding lately?',
+      text: 'What feels steady or supportive about the way you’ve been making decisions lately?',
     },
     {
       id: 'DIRECTION_GROWING_4',
@@ -77,7 +77,7 @@ export const QUESTION_BUCKETS: Record<GentleQuestionBucketId, GentleQuestion[]> 
     {
       id: 'DIRECTION_STABLE_3',
       bucketId: 'DIRECTION_STABLE',
-      text: 'What feels familiar or steady about your recent choices?',
+      text: 'What feels familiar or steady about your recent decisions?',
     },
     {
       id: 'DIRECTION_STABLE_4',
@@ -99,7 +99,7 @@ export const QUESTION_BUCKETS: Record<GentleQuestionBucketId, GentleQuestion[]> 
     {
       id: 'DIRECTION_DRIFTING_3',
       bucketId: 'DIRECTION_DRIFTING',
-      text: 'What feels most challenging about making choices right now?',
+      text: 'What feels most challenging about making decisions right now?',
     },
     {
       id: 'DIRECTION_DRIFTING_4',
@@ -148,7 +148,7 @@ export const QUESTION_BUCKETS: Record<GentleQuestionBucketId, GentleQuestion[]> 
     {
       id: 'CATEGORY_FOCUS_3',
       bucketId: 'CATEGORY_FOCUS',
-      text: 'What feels important when choices span different areas of life?',
+      text: 'What feels important when decisions span different areas of life?',
     },
     {
       id: 'CATEGORY_FOCUS_4',

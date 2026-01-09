@@ -128,6 +128,24 @@ export async function getWeeklyConfidenceSeries(
   return out;
 }
 
+export async function getDecisionCountInRange(startAt: number, endAt: number): Promise<number> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(1) as count FROM decisions WHERE createdAt >= ? AND createdAt < ?;',
+    [startAt, endAt]
+  );
+  return Number(row?.count ?? 0);
+}
+
+export async function getLastDecisionCreatedAt(): Promise<number | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<{ createdAt: number }>(
+    'SELECT createdAt FROM decisions ORDER BY createdAt DESC LIMIT 1;'
+  );
+  const ms = row?.createdAt;
+  return typeof ms === 'number' && Number.isFinite(ms) ? ms : null;
+}
+
 function rowToDecision(row: any): Decision {
   return {
     id: String(row.id),

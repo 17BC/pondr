@@ -108,7 +108,7 @@ export const REFLECTION_TEMPLATES: ReflectionTemplate[] = [
     id: 'LOW_DATA_2',
     conditions: { minCount: 1, maxCount: 2, focusIsTie: false, hasFocusCategory: true },
     text:
-      'You logged {Count} decisions this week, with a clear tilt toward {Category}. With limited data, that doesn’t mean it will stay that way—it simply describes what was recorded. This week’s snapshot is intentionally small and descriptive. If it feels surprising, it may just be a sign that a single choice carried more weight in your attention.',
+      'You logged {Count} decisions this week, with a clear tilt toward {Category}. With limited data, that doesn’t mean it will stay that way—it simply describes what was recorded. This week’s snapshot is intentionally small and descriptive. If it feels surprising, it may just be a sign that a single decision carried more weight in your attention.',
     patternLine: 'With limited data, {Category} showed up as the most common area.',
     limitedDataVariant: {
       text:

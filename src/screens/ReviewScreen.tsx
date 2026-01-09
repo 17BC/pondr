@@ -255,9 +255,9 @@ export function ReviewScreen(): React.JSX.Element {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: c.background }]} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: c.primaryMuted }]} contentContainerStyle={styles.content}>
       <Text style={[styles.title, { color: c.textPrimary }]}>Review</Text>
-      <Text style={[styles.subtitle, { color: c.textSecondary }]}>A calm weekly snapshot and reflection.</Text>
+      <Text style={[styles.subtitle, { color: c.textSecondary }]}>A weekly snapshot and reflection from your journal entries.</Text>
 
       <View style={styles.spacer} />
 
@@ -274,7 +274,7 @@ export function ReviewScreen(): React.JSX.Element {
         <>
           <Card>
             <Text style={[styles.cardTitle, { color: c.textPrimary }]}>Weekly Snapshot</Text>
-            <Text style={[styles.cardBody, { color: c.textSecondary }]}>Patterns from this week — no analysis, no advice.</Text>
+            <Text style={[styles.cardBody, { color: c.textSecondary }]}>A simple summary of how your decisions felt this week.</Text>
 
             <View style={styles.metricRow}>
               <Text style={[styles.metricLabel, { color: c.textSecondary }]}>Decisions logged</Text>
@@ -302,7 +302,7 @@ export function ReviewScreen(): React.JSX.Element {
 
           <Card>
             <Text style={[styles.cardTitle, { color: c.textPrimary }]}>Reflection</Text>
-            <Text style={[styles.cardBody, { color: c.textSecondary }]}>Generated once per week. Read-only.</Text>
+            <Text style={[styles.cardBody, { color: c.textSecondary }]}>This reflection summarizes how your decisions felt this week.</Text>
 
             {!reflection ? (
               <View style={styles.footer}>
