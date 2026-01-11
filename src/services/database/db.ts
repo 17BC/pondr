@@ -16,6 +16,17 @@ export async function initDb(): Promise<void> {
   await db.execAsync('PRAGMA foreign_keys = ON;');
   await db.execAsync(CREATE_TABLES_SQL);
 
+  // Lightweight migration: ensure newer columns exist on the decisions table.
+  try {
+    const cols = await db.getAllAsync<{ name: string }>('PRAGMA table_info(decisions);');
+    const names = new Set(cols.map((c) => String(c.name)));
+    if (!names.has('secondaryCategories')) {
+      await db.execAsync("ALTER TABLE decisions ADD COLUMN secondaryCategories TEXT NOT NULL DEFAULT '[]';");
+    }
+  } catch {
+    // If table_info isn't accessible for some reason, do nothing.
+  }
+
   // One-time migration: if a legacy database exists, copy its decisions into the new DB.
   // We use PRAGMA user_version as a lightweight marker to avoid doing this every launch.
   try {

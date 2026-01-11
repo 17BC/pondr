@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS decisions (
   id TEXT PRIMARY KEY NOT NULL,
   title TEXT NOT NULL,
   category TEXT NOT NULL,
+  secondaryCategories TEXT NOT NULL DEFAULT '[]',
   whyText TEXT,
   feeling INTEGER NOT NULL,
   confidence INTEGER NOT NULL,

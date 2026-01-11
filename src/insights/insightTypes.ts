@@ -3,6 +3,7 @@ import type { ConfidenceTrend } from '../confidence/confidence';
 
 export type InsightCardType =
   | 'decision_focus'
+  | 'category_overlaps'
   | 'confidence_by_category'
   | 'confidence_trend'
   | 'decision_pace'
@@ -27,6 +28,12 @@ export type ConfidenceByCategoryCard = InsightCardBase & {
   direction: 'more' | 'less';
 };
 
+export type CategoryOverlapsCard = InsightCardBase & {
+  type: 'category_overlaps';
+  overlapDecisionCount: number;
+  mostCommonPair: { a: DecisionCategory; b: DecisionCategory } | null;
+};
+
 export type ConfidenceTrendCard = InsightCardBase & {
   type: 'confidence_trend';
   trend: ConfidenceTrend;
@@ -48,6 +55,7 @@ export type RepeatedChoicePatternCard = InsightCardBase & {
 
 export type InsightCard =
   | DecisionFocusCard
+  | CategoryOverlapsCard
   | ConfidenceByCategoryCard
   | ConfidenceTrendCard
   | DecisionPaceCard

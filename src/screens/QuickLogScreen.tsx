@@ -25,12 +25,23 @@ export function QuickLogScreen(): React.JSX.Element {
   const [title, setTitle] = useState('');
   const [details, setDetails] = useState('');
   const [category, setCategory] = useState<DecisionCategory>('other');
+  const [secondaryCategories, setSecondaryCategories] = useState<DecisionCategory[]>([]);
+  const [showSecondary, setShowSecondary] = useState(false);
   const [confidence, setConfidence] = useState<ConfidenceScore | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigation = useNavigation<any>();
   const c = colors.light;
   const markSaved = useDecisionEventsStore((s) => s.markSaved);
+
+  const toggleSecondaryCategory = (cat: DecisionCategory): void => {
+    if (cat === category) return;
+    setSecondaryCategories((prev) => {
+      if (prev.includes(cat)) return prev.filter((x) => x !== cat);
+      if (prev.length >= 2) return prev;
+      return [...prev, cat];
+    });
+  };
 
   const canSave = title.trim().length > 0 && confidence !== null && !saving;
 
@@ -55,6 +66,7 @@ export function QuickLogScreen(): React.JSX.Element {
       await createQuickDecision({
         title: trimmed,
         category,
+        secondaryCategories: secondaryCategories.filter((x) => x !== category).slice(0, 2),
         whyText: details.trim().length > 0 ? details.trim() : null,
         confidence,
       });
@@ -80,6 +92,8 @@ export function QuickLogScreen(): React.JSX.Element {
       setTitle('');
       setDetails('');
       setCategory('other');
+      setSecondaryCategories([]);
+      setShowSecondary(false);
       setConfidence(null);
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Could not save this decision.';
@@ -143,7 +157,10 @@ export function QuickLogScreen(): React.JSX.Element {
           return (
             <Pressable
               key={cat}
-              onPress={() => setCategory(cat)}
+              onPress={() => {
+                setCategory(cat);
+                setSecondaryCategories((prev) => prev.filter((x) => x !== cat));
+              }}
               style={[
                 styles.chip,
                 {
@@ -161,6 +178,58 @@ export function QuickLogScreen(): React.JSX.Element {
           );
         })}
       </View>
+
+      <View style={styles.secondaryHeaderRow}>
+        <Pressable
+          onPress={() => setShowSecondary((v) => !v)}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showSecondary }}
+          style={styles.secondaryHeaderPressable}
+        >
+          <Text style={[styles.secondaryHeaderText, { color: c.textSecondary }]}>Also relates to</Text>
+          <Text style={[styles.secondaryHeaderText, { color: c.primary }]}> {showSecondary ? 'Hide' : 'Add'}</Text>
+        </Pressable>
+
+        {secondaryCategories.length > 0 ? (
+          <Text style={[styles.secondaryCount, { color: c.textSecondary }]}>
+            {secondaryCategories.length}/2
+          </Text>
+        ) : null}
+      </View>
+
+      {showSecondary ? (
+        <>
+          <View style={styles.chipWrap}>
+            {QUICK_CATEGORIES.filter((cat) => cat !== category).map((cat) => {
+              const active = secondaryCategories.includes(cat);
+              const atLimit = secondaryCategories.length >= 2;
+              const disabled = !active && atLimit;
+              return (
+                <Pressable
+                  key={`secondary-${cat}`}
+                  onPress={() => toggleSecondaryCategory(cat)}
+                  disabled={disabled}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: active ? c.primaryMuted : c.surface,
+                      borderColor: active ? c.primary : c.border,
+                      opacity: disabled ? 0.5 : 1,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active, disabled }}
+                >
+                  <Text style={[styles.chipText, { color: active ? c.textPrimary : c.textSecondary }]}>
+                    {categoryLabel(cat)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={[styles.secondaryHint, { color: c.textMuted }]}>Select up to 2.</Text>
+        </>
+      ) : null}
 
       <Text style={[styles.label, { color: c.textPrimary }]}>Details (optional)</Text>
       <TextInput
@@ -239,6 +308,30 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 13,
     fontWeight: '700',
+  },
+  secondaryHeaderRow: {
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  secondaryHeaderPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  secondaryHeaderText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  secondaryCount: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  secondaryHint: {
+    marginTop: 6,
+    fontSize: 12,
+    lineHeight: 16,
   },
   help: {
     marginTop: 8,

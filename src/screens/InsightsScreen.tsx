@@ -34,6 +34,7 @@ export function InsightsScreen(): React.JSX.Element {
     const order: InsightCardType[] = [
       'direction_status',
       'decision_focus',
+      'category_overlaps',
       'confidence_trend',
       'confidence_by_category',
       'decision_pace',

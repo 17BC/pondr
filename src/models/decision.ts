@@ -19,6 +19,7 @@ export interface Decision {
   id: string;
   title: string;
   category: DecisionCategory;
+  secondaryCategories: DecisionCategory[];
   whyText?: string | null;
   feeling: FeelingScore;
   confidence: ConfidenceScore;
@@ -32,6 +33,7 @@ export interface Decision {
 export interface DecisionDraft {
   title: string;
   category: DecisionCategory;
+  secondaryCategories: DecisionCategory[];
   whyText?: string | null;
   feeling: FeelingScore;
   confidence: ConfidenceScore;

@@ -13,6 +13,7 @@ import {
 } from '../../confidence/confidence';
 import {
   INSIGHT_TITLES,
+  categoryOverlapsCopy,
   confidenceByCategoryCopy,
   confidenceTrendCopy,
   decisionFocusCopy,
@@ -20,6 +21,7 @@ import {
   directionStatusCopy,
   repeatedChoicePatternCopy,
 } from '../../insights/insightCopy';
+import { computeCategoryOverlapSummary } from '../../insights/categoryOverlaps';
 
 function safeJsonArray(value: string | null | undefined): string[] {
   if (!value) return [];
@@ -151,6 +153,7 @@ function rowToDecision(row: any): Decision {
     id: String(row.id),
     title: String(row.title),
     category: row.category as DecisionCategory,
+    secondaryCategories: safeJsonArray(row.secondaryCategories) as any,
     whyText: row.whyText ?? null,
     feeling: Number(row.feeling) as Decision['feeling'],
     confidence: Number(row.confidence) as Decision['confidence'],
@@ -171,6 +174,7 @@ function startOfDayMs(nowMs: number): number {
 export async function createQuickDecision(input: {
   title: string;
   category?: DecisionCategory;
+  secondaryCategories?: DecisionCategory[];
   whyText?: string | null;
   confidence: Decision['confidence'];
 }): Promise<Decision> {
@@ -181,6 +185,7 @@ export async function createQuickDecision(input: {
     id: uuidV4(),
     title: input.title.trim(),
     category: input.category ?? 'other',
+    secondaryCategories: input.secondaryCategories ?? [],
     whyText: input.whyText ?? null,
     feeling: 3,
     confidence: input.confidence,
@@ -193,12 +198,13 @@ export async function createQuickDecision(input: {
 
   await db.runAsync(
     `INSERT INTO decisions 
-      (id, title, category, whyText, feeling, confidence, tradeoffGains, tradeoffLosses, tags, createdAt, updatedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+      (id, title, category, secondaryCategories, whyText, feeling, confidence, tradeoffGains, tradeoffLosses, tags, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
     [
       decision.id,
       decision.title,
       decision.category,
+      JSON.stringify(decision.secondaryCategories),
       decision.whyText ?? null,
       decision.feeling,
       decision.confidence,
@@ -330,6 +336,28 @@ export async function getInsightsSnapshot(nowMs: number = Date.now(), weekStartD
       category: topCategory,
     });
   }
+
+  // 1b) Category Overlaps (Pattern): decisions where the user explicitly selected 1–2 secondary categories
+  const overlapRows = await db.getAllAsync<{ category: string; secondaryCategories: string }>(
+    'SELECT category, secondaryCategories FROM decisions WHERE createdAt >= ? AND createdAt < ?;',
+    [weekStartAt, weekEndAt]
+  );
+  const overlapInput = overlapRows.map((r) => ({
+    category: String(r.category) as DecisionCategory,
+    secondaryCategories: safeJsonArray(r.secondaryCategories) as any,
+  }));
+  const overlapSummary = computeCategoryOverlapSummary({ decisions: overlapInput });
+  cards.push({
+    id: 'category_overlaps',
+    type: 'category_overlaps',
+    title: INSIGHT_TITLES.category_overlaps,
+    copy: categoryOverlapsCopy({
+      overlapDecisionCount: overlapSummary.overlapDecisionCount,
+      mostCommonPair: overlapSummary.mostCommonPair,
+    }),
+    overlapDecisionCount: overlapSummary.overlapDecisionCount,
+    mostCommonPair: overlapSummary.mostCommonPair,
+  });
 
   // 2) Confidence by Category (Pattern): current week, min 2 decisions per category
   const categoryAvgRows = await db.getAllAsync<{ category: string; avg: number | null; count: number }>(

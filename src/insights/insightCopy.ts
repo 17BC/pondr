@@ -5,6 +5,7 @@ import { confidenceTrendCopy as confidenceTrendSentence } from '../confidence/co
 
 export const INSIGHT_TITLES = {
   decision_focus: 'Decision Focus',
+  category_overlaps: 'Category Overlaps',
   confidence_by_category: 'Confidence by Category',
   confidence_trend: 'Confidence Trend',
   decision_pace: 'Decision Pace',
@@ -14,6 +15,18 @@ export const INSIGHT_TITLES = {
 
 export function decisionFocusCopy(category: DecisionCategory): string {
   return `Most of your recent decisions were about ${categoryLabel(category)}.`;
+}
+
+export function categoryOverlapsCopy(input: {
+  overlapDecisionCount: number;
+  mostCommonPair: { a: DecisionCategory; b: DecisionCategory } | null;
+}): string {
+  if (input.overlapDecisionCount < 2 || !input.mostCommonPair) {
+    return 'Log a few overlapping decisions to see connections.';
+  }
+
+  const pair = `${categoryLabel(input.mostCommonPair.a)} + ${categoryLabel(input.mostCommonPair.b)}`;
+  return `This week, ${input.overlapDecisionCount} decisions included more than one category. A common overlap was ${pair}.`;
 }
 
 export function confidenceByCategoryCopy(input: { category: DecisionCategory; direction: 'more' | 'less' }): string {
