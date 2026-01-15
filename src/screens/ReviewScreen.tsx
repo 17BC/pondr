@@ -1,7 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { useFocusEffect } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { RouteProp } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 
 import { AppButton } from '../components/common/AppButton';
 import { Card } from '../components/common/Card';
@@ -24,9 +26,12 @@ import {
 import { getReviewUnlockState } from '../review/reflectionUnlock';
 import { confidenceTrendCopy, getCurrentWeekRange } from '../confidence/confidence';
 import { getWeekStartDay } from '../settings/weekSettings';
+import type { TabParamList } from '../navigation/types';
 
 export function ReviewScreen(): React.JSX.Element {
   const c = colors.light;
+  const navigation = useNavigation<BottomTabNavigationProp<TabParamList>>();
+  const route = useRoute<RouteProp<TabParamList, 'Review'>>();
 
   const saveVersion = useDecisionEventsStore((s) => s.saveVersion);
 
@@ -160,6 +165,14 @@ export function ReviewScreen(): React.JSX.Element {
     }, [saveVersion])
   );
 
+  useEffect(() => {
+    if (!__DEV__) return;
+    if (route.params?.devAction !== 'generate_last_week') return;
+    if (generating) return;
+    onGenerateLastWeekDev();
+    navigation.setParams({ devAction: undefined });
+  }, [generating, navigation, route.params?.devAction]);
+
   const unlockState = useMemo(() => {
     if (!snapshot) return null;
     return getReviewUnlockState({
@@ -176,10 +189,6 @@ export function ReviewScreen(): React.JSX.Element {
   const canGenerate = useMemo(() => {
     return !generating && snapshot !== null && unlockState?.kind === 'UNLOCKED';
   }, [generating, snapshot, unlockState]);
-
-  const canGenerateDevLastWeek = useMemo(() => {
-    return !generating && __DEV__;
-  }, [generating]);
 
   const onGenerate = async (): Promise<void> => {
     if (!snapshot || generating) return;
@@ -334,16 +343,6 @@ export function ReviewScreen(): React.JSX.Element {
                   onPress={onGenerate}
                   disabled={!canGenerate}
                 />
-                {__DEV__ ? (
-                  <View style={styles.devButtonSpacer}>
-                    <AppButton
-                      title={generating ? 'Generating…' : 'Generate Last Week (Dev)'}
-                      onPress={onGenerateLastWeekDev}
-                      disabled={!canGenerateDevLastWeek}
-                      variant="ghost"
-                    />
-                  </View>
-                ) : null}
               </View>
             ) : (
               <>
@@ -438,9 +437,6 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 12,
     gap: 10,
-  },
-  devButtonSpacer: {
-    marginTop: 6,
   },
   reflectionText: {
     marginTop: 10,

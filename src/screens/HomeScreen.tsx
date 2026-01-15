@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { useNavigation } from '@react-navigation/native';
 
@@ -28,9 +28,11 @@ export function HomeScreen(): React.JSX.Element {
   }, [refresh, saveVersion]);
 
   return (
-    <View style={[styles.container, { backgroundColor: c.primaryMuted }]}>
-      <Text style={[styles.title, { color: c.textPrimary }]}>PONDR</Text>
-      <Text style={[styles.subtitle, { color: c.textSecondary }]}>Reflect on the decisions that matter.</Text>
+    <View style={[styles.container, { backgroundColor: c.primaryMuted }]}> 
+      <Text style={[styles.title, { color: c.textPrimary }]}>
+        P<Image source={require('../../assets/pondr_icon_1.png')} style={styles.titleIcon} />{'\u200A'}NDR
+      </Text>
+      <Text style={[styles.subtitle, { color: c.textSecondary }]}>Reflect on decisions that matter.</Text>
 
       <View style={styles.spacer} />
 
@@ -109,7 +111,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: '700',
+    letterSpacing: 1.2,
     textAlign: 'center',
+  },
+  titleIcon: {
+    width: 26,
+    height: 26,
+    transform: [{ translateY: 2 }],
+    resizeMode: 'contain',
   },
   subtitle: {
     marginTop: 8,

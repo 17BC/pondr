@@ -8,6 +8,8 @@ export type MainStackParamList = {
   QuickLog: undefined;
   DecisionDetails: { decisionId: string };
   DecisionEdit: { decisionId: string };
+  PONDRPlus: undefined;
+  MonthlyReflection: undefined;
 };
 
 export type OnboardingStackParamList = {
@@ -20,6 +22,6 @@ export type TabParamList = {
   Home: undefined;
   History: undefined;
   Insights: undefined;
-  Review: undefined;
+  Review: { devAction?: 'generate_last_week' } | undefined;
   Settings: undefined;
 };

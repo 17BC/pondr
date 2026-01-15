@@ -19,6 +19,7 @@ export function InsightsScreen(): React.JSX.Element {
   const status = useInsightsStore((s) => s.status);
   const data = useInsightsStore((s) => s.data);
   const refresh = useInsightsStore((s) => s.refresh);
+  const nowMsOverride = useInsightsStore((s) => s.nowMsOverride);
 
   const [series, setSeries] = useState<Array<{ dayStartAt: number; avgConfidence: number | null; count: number }>>([]);
   const [seriesStatus, setSeriesStatus] = useState<'idle' | 'loading' | 'error'>('idle');
@@ -53,7 +54,8 @@ export function InsightsScreen(): React.JSX.Element {
       setSeriesStatus('loading');
       try {
         const weekStartDay = await getWeekStartDay();
-        const s = await getWeeklyConfidenceSeries(Date.now(), weekStartDay);
+        const nowMs = nowMsOverride ?? Date.now();
+        const s = await getWeeklyConfidenceSeries(nowMs, weekStartDay);
         if (!alive) return;
         setSeries(s);
         setSeriesStatus('idle');
@@ -65,7 +67,7 @@ export function InsightsScreen(): React.JSX.Element {
     return () => {
       alive = false;
     };
-  }, [saveVersion]);
+  }, [nowMsOverride, saveVersion]);
 
   const hasAnySeriesData = useMemo(() => series.some((p) => (p.count ?? 0) > 0), [series]);
 

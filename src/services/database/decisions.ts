@@ -437,11 +437,25 @@ export async function getInsightsSnapshot(nowMs: number = Date.now(), weekStartD
   );
   const recentCount = Number(recentCountRow?.count ?? 0);
 
-  if (totalCount >= 3 && firstAt > 0) {
-    const daysSinceFirst = Math.max(14, Math.floor((now - firstAt) / (24 * 60 * 60 * 1000)) + 1);
+  // Guardrails: don't claim "more/fewer than usual" until we have enough data.
+  // - Need at least 1 decision this week (otherwise there's no "current pace" context for the user).
+  // - Need enough history to establish a meaningful baseline.
+  const daysSinceFirst = firstAt > 0 ? Math.floor((now - firstAt) / (24 * 60 * 60 * 1000)) + 1 : 0;
+  const hasBaseline = totalCount >= 7 && firstAt > 0 && daysSinceFirst >= 14;
+  const hasRecentSignal = recentCount >= 3;
+  const hasThisWeekSignal = currentCount >= 1;
+
+  if (!hasBaseline || !hasRecentSignal || !hasThisWeekSignal) {
+    cards.push({
+      id: 'decision_pace',
+      type: 'decision_pace',
+      title: INSIGHT_TITLES.decision_pace,
+      copy: 'Log a few decisions over time to see your decision pace patterns.',
+      pace: 'more',
+    });
+  } else {
     const avgPer14 = totalCount / (daysSinceFirst / 14);
     const pace: 'more' | 'fewer' = recentCount >= avgPer14 ? 'more' : 'fewer';
-
     cards.push({
       id: 'decision_pace',
       type: 'decision_pace',

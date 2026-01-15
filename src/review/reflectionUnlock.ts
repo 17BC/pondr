@@ -58,18 +58,10 @@ export function getReviewUnlockState(input: {
   hasAtLeastOneDecisionInWindow: boolean;
   cachedGeneratedAtIso: string | null;
 }): ReviewUnlockState {
-  const days = input.days ?? 7;
-  const window = getRollingWindow(days, input.nowMs);
-
-  const anchor = input.lastReflectionAtIso ?? input.firstAppUseAtIso;
-  const daysRemaining = daysUntilNextUnlock(anchor, days, input.nowMs);
-  const timeUnlocked = daysRemaining === 0;
-
-  if (!timeUnlocked) {
-    return { kind: 'LOCKED_TIME', daysRemaining };
-  }
-
   const lastDay = lastDayUnlock({ nowMs: input.nowMs, weekStartDay: input.weekStartDay });
+  const week = getCurrentWeekRange(input.nowMs, input.weekStartDay);
+  const window = { start: week.start, end: week.end };
+
   if (!lastDay.isLastDay) {
     return { kind: 'LOCKED_WEEKDAY', daysRemaining: lastDay.daysRemaining };
   }
