@@ -30,7 +30,7 @@ export function HomeScreen(): React.JSX.Element {
   return (
     <View style={[styles.container, { backgroundColor: c.primaryMuted }]}> 
       <Text style={[styles.title, { color: c.textPrimary }]}>
-        P<Image source={require('../../assets/pondr_icon_1.png')} style={styles.titleIcon} />{'\u200A'}NDR
+        P{'\u200A'}<Image source={require('../../assets/pondr_icon_3.png')} style={styles.titleIcon} />{'\u200A'}NDR
       </Text>
       <Text style={[styles.subtitle, { color: c.textSecondary }]}>Reflect on decisions that matter.</Text>
 

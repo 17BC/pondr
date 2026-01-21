@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppButton } from '../../components/common/AppButton';
@@ -15,7 +15,9 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
   return (
     <View style={[styles.container, { backgroundColor: c.primaryMuted }]}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: c.textPrimary }]}>PONDR</Text>
+        <Text style={[styles.title, { color: c.textPrimary }]}>
+          P{'\u200A'}<Image source={require('../../../assets/pondr_icon_3.png')} style={styles.titleIcon} />{'\u200A'}NDR
+        </Text>
         <Text style={[styles.subtitle, { color: c.textSecondary }]}>Reflect on the decisions that matter.</Text>
       </View>
 
@@ -46,6 +48,12 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: '800',
     letterSpacing: 0.4,
+  },
+  titleIcon: {
+    width: 30,
+    height: 30,
+    transform: [{ translateY: 3 }],
+    resizeMode: 'contain',
   },
   subtitle: {
     marginTop: 6,

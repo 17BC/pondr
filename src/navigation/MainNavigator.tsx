@@ -7,6 +7,7 @@ import { QuickLogScreen } from '../screens/QuickLogScreen';
 import { DecisionDetailsScreen } from '../screens/DecisionDetailsScreen';
 import { DecisionEditScreen } from '../screens/DecisionEditScreen';
 import { PONDRPlusScreen } from '../screens/PONDRPlusScreen';
+import { MonthlyReflectionScreen } from '../screens/MonthlyReflectionScreen';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
@@ -25,6 +26,7 @@ export function MainNavigator(): React.JSX.Element {
       <Stack.Screen name="DecisionDetails" component={DecisionDetailsScreen} options={{ title: 'Details' }} />
       <Stack.Screen name="DecisionEdit" component={DecisionEditScreen} options={{ title: 'Edit' }} />
       <Stack.Screen name="PONDRPlus" component={PONDRPlusScreen} options={{ title: 'PONDR Plus' }} />
+      <Stack.Screen name="MonthlyReflection" component={MonthlyReflectionScreen} options={{ title: 'Monthly Reflection' }} />
     </Stack.Navigator>
   );
 }

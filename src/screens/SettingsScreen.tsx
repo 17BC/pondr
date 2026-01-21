@@ -69,10 +69,25 @@ export function SettingsScreen(): React.JSX.Element {
 
       <Text style={[styles.sectionTitle, { color: c.textMuted }]}>PONDR Plus</Text>
       <Card>
-        <Text style={[styles.plusCardTitle, { color: c.textPrimary }]}>P<Image source={require('../../assets/pondr_icon_1.png')} style={styles.plusTitleIcon} />{'\u200A'}NDR Plus</Text>
+        <Text style={[styles.plusCardTitle, { color: c.textPrimary }]}>
+          P{'\u200A'}<Image source={require('../../assets/pondr_icon_3.png')} style={styles.plusTitleIcon} />{'\u200A'}NDR Plus
+        </Text>
         <Text style={[styles.cardText, { color: c.textSecondary }]}>Optional flexibility for reflecting on past weeks and monthly patterns.</Text>
         <View style={styles.buttonRow}>
           <AppButton title="Learn more" variant="secondary" onPress={() => navigation.navigate('PONDRPlus')} />
+        </View>
+      </Card>
+
+      <View style={styles.sectionSpacer} />
+
+      <Text style={[styles.sectionTitle, { color: c.textMuted }]}>Reflections</Text>
+      <Card>
+        <Text style={[styles.cardText, { color: c.textSecondary }]}>Monthly Reflection</Text>
+        <Text style={[styles.cardText, { color: c.textSecondary, marginTop: 8 }]}>
+          A gentle look at patterns across the month.
+        </Text>
+        <View style={styles.buttonRow}>
+          <AppButton title="Open" variant="secondary" onPress={() => navigation.navigate('MonthlyReflection')} />
         </View>
       </Card>
 

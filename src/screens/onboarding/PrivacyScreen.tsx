@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppButton } from '../../components/common/AppButton';
@@ -17,7 +17,10 @@ export function PrivacyScreen(_props: Props): React.JSX.Element {
   return (
     <View style={[styles.container, { backgroundColor: c.primaryMuted }]}>
       <Text style={[styles.title, { color: c.textPrimary }]}>Private by default</Text>
-      <Text style={[styles.subtitle, { color: c.textSecondary }]}>PONDR is designed for reflection — not surveillance.</Text>
+      <Text style={[styles.subtitle, { color: c.textSecondary }]}>
+        P{'\u200A'}<Image source={require('../../../assets/pondr_icon_3.png')} style={styles.wordmarkIcon} />{'\u200A'}NDR
+        {' '}is designed for reflection — not surveillance.
+      </Text>
 
       <View style={styles.spacer} />
 
@@ -37,7 +40,16 @@ export function PrivacyScreen(_props: Props): React.JSX.Element {
       </Card>
 
       <View style={styles.footer}>
-        <AppButton title="Start using PONDR" onPress={complete} />
+        <AppButton
+          title={
+            <>
+              Start using P{'\u200A'}
+              <Image source={require('../../../assets/pondr_icon_3.png')} style={styles.wordmarkIconButton} />
+              {'\u200A'}NDR
+            </>
+          }
+          onPress={complete}
+        />
       </View>
     </View>
   );
@@ -57,6 +69,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     lineHeight: 20,
+  },
+  wordmarkIcon: {
+    width: 11,
+    height: 11,
+    transform: [{ translateY: 1 }],
+    resizeMode: 'contain',
   },
   spacer: {
     height: 16,
@@ -82,5 +100,11 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 'auto',
     paddingTop: 16,
+  },
+  wordmarkIconButton: {
+    width: 14,
+    height: 14,
+    transform: [{ translateY: 2 }],
+    resizeMode: 'contain',
   },
 });

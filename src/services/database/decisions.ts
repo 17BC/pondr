@@ -566,13 +566,17 @@ export async function getWeeklyReviewDetail(nowMs: number = Date.now(), weekStar
   windowEndAt: number;
   decisionCount: number;
   mostCommonCategory: DecisionCategory | null;
+  secondaryCategory: DecisionCategory | null;
   decisionFocus: { focusCategory: DecisionCategory | null; isTie: boolean };
+  categoryOverlaps: { a: DecisionCategory; b: DecisionCategory } | null;
   confidenceByCategoryInsight: { kind: 'MORE' | 'LESS' | 'NONE'; category: DecisionCategory | null };
   focusCopy: string;
   avgConfidence: number | null;
   confidenceTrend: ConfidenceTrend;
   directionStatus: DirectionStatus;
   notablePatterns: string[];
+  mostRepeatedTag: string | null;
+  daysWithDecisions: number;
 }> {
   const db = await getDb();
   const weekRange = getCurrentWeekRange(nowMs, weekStartDay);
@@ -594,6 +598,7 @@ export async function getWeeklyReviewDetail(nowMs: number = Date.now(), weekStar
   );
 
   let mostCommonCategory: DecisionCategory | null = null;
+  let secondaryCategory: DecisionCategory | null = null;
   let focusCopy: string;
   let focusIsTie = false;
   if (topCategoryRows.length === 0) {
@@ -607,6 +612,7 @@ export async function getWeeklyReviewDetail(nowMs: number = Date.now(), weekStar
       mostCommonCategory = null;
     } else {
       mostCommonCategory = String(top.category) as DecisionCategory;
+      secondaryCategory = second ? (String(second.category) as DecisionCategory) : null;
       focusCopy = decisionFocusCopy(mostCommonCategory);
     }
   }
@@ -631,6 +637,43 @@ export async function getWeeklyReviewDetail(nowMs: number = Date.now(), weekStar
     decisionCount >= 1 && prevCount >= 1 ? computeConfidenceTrend(avgConfidenceValue, prevAvgConfidenceValue) : 'NA';
 
   const directionStatus: DirectionStatus = computeDirectionStatus(decisionCount, avgConfidenceValue);
+
+  const overlapRows = await db.getAllAsync<{ category: string; secondaryCategories: string }>(
+    'SELECT category, secondaryCategories FROM decisions WHERE createdAt >= ? AND createdAt < ?;',
+    [windowStartAt, windowEndAt]
+  );
+  const overlapInput = overlapRows.map((r) => ({
+    category: String(r.category) as DecisionCategory,
+    secondaryCategories: safeJsonArray(r.secondaryCategories) as any,
+  }));
+  const overlapSummary = computeCategoryOverlapSummary({ decisions: overlapInput });
+  const categoryOverlaps = overlapSummary.mostCommonPair;
+
+  const tagRows = await db.getAllAsync<{ tags: string; createdAt: number }>(
+    'SELECT tags, createdAt FROM decisions WHERE createdAt >= ? AND createdAt < ?;',
+    [windowStartAt, windowEndAt]
+  );
+  const tagCounts = new Map<string, number>();
+  const dayStarts = new Set<number>();
+  for (const r of tagRows) {
+    dayStarts.add(startOfDayMs(Number(r.createdAt)));
+    for (const tag of safeJsonArray(r.tags)) {
+      const cleaned = String(tag).trim();
+      if (!cleaned) continue;
+      tagCounts.set(cleaned, (tagCounts.get(cleaned) ?? 0) + 1);
+    }
+  }
+
+  let mostRepeatedTag: string | null = null;
+  let mostRepeatedTagCount = 0;
+  for (const [tag, count] of tagCounts.entries()) {
+    if (count > mostRepeatedTagCount) {
+      mostRepeatedTag = tag;
+      mostRepeatedTagCount = count;
+    }
+  }
+
+  const daysWithDecisions = dayStarts.size;
 
   // Confidence-by-category insight (weekly, min 2 decisions per category).
   // Deterministic: we avoid new thresholds and use the same eligibility rule as Insights.
@@ -667,13 +710,17 @@ export async function getWeeklyReviewDetail(nowMs: number = Date.now(), weekStar
     windowEndAt,
     decisionCount,
     mostCommonCategory,
+    secondaryCategory,
     decisionFocus: { focusCategory: mostCommonCategory, isTie: focusIsTie },
+    categoryOverlaps,
     confidenceByCategoryInsight,
     focusCopy,
     avgConfidence: avgConfidenceValue,
     confidenceTrend,
     directionStatus,
     notablePatterns: [],
+    mostRepeatedTag,
+    daysWithDecisions,
   };
 }
 

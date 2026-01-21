@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { AppButton } from '../components/common/AppButton';
 import { Card } from '../components/common/Card';
@@ -14,8 +16,7 @@ import { getWeeklyReviewDetail } from '../services/database/decisions';
 import { categoryLabel } from '../utils/categoryLabel';
 import { directionStatusCopy } from '../confidence/confidence';
 import { generateRollingReflection } from '../services/ai/reviewReflection';
-import { getGentleQuestionHistory, setGentleQuestionHistory } from '../review/gentleQuestionHistoryStorage';
-import { nextGentleQuestionHistory, selectGentleQuestion } from '../review/selectGentleQuestion';
+import { composeWeeklyReflection } from '../review/ReflectionComposer';
 import {
   ensureFirstAppUseAt,
   getLastReflectionAt,
@@ -24,16 +25,24 @@ import {
   setRollingReflectionCache,
 } from '../review/reflectionRitualStorage';
 import { getReviewUnlockState } from '../review/reflectionUnlock';
-import { confidenceTrendCopy, getCurrentWeekRange } from '../confidence/confidence';
+import { confidenceTrendCopy, getCurrentWeekRange, getPreviousWeekRange } from '../confidence/confidence';
 import { getWeekStartDay } from '../settings/weekSettings';
 import type { TabParamList } from '../navigation/types';
+import type { MainStackParamList } from '../navigation/types';
+import { useSubscriptionStore } from '../store/useSubscriptionStore';
+import { getOrCreateInstallId } from '../storage/installIdStorage';
+import { getPreviousWeekGrace, setPreviousWeekGrace } from '../storage/previousWeekGraceStorage';
+import { getPreviousWeekReflectionCache, setPreviousWeekReflectionCache } from '../review/previousWeekReflectionStorage';
 
 export function ReviewScreen(): React.JSX.Element {
   const c = colors.light;
-  const navigation = useNavigation<BottomTabNavigationProp<TabParamList>>();
+  const navigation = useNavigation<
+    CompositeNavigationProp<BottomTabNavigationProp<TabParamList>, NativeStackNavigationProp<MainStackParamList>>
+  >();
   const route = useRoute<RouteProp<TabParamList, 'Review'>>();
 
   const saveVersion = useDecisionEventsStore((s) => s.saveVersion);
+  const isSubscribed = useSubscriptionStore((s) => s.isSubscribed);
 
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [snapshot, setSnapshot] = useState<
@@ -41,9 +50,10 @@ export function ReviewScreen(): React.JSX.Element {
     | null
   >(null);
   const [reflection, setReflection] = useState<string | null>(null);
-  const [observedPattern, setObservedPattern] = useState<string | null>(null);
-  const [question, setQuestion] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [previousWeekReflection, setPreviousWeekReflection] = useState<string | null>(null);
+  const [previousWeekUsed, setPreviousWeekUsed] = useState<boolean>(false);
+  const [generatingPreviousWeek, setGeneratingPreviousWeek] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [firstAppUseAtIso, setFirstAppUseAtIso] = useState<string | null>(null);
   const [lastReflectionAtIso, setLastReflectionAtIso] = useState<string | null>(null);
@@ -54,10 +64,13 @@ export function ReviewScreen(): React.JSX.Element {
     setStatus('loading');
     setError(null);
     try {
+      await useSubscriptionStore.getState().refresh();
       const nowMs = Date.now();
       const firstUse = await ensureFirstAppUseAt(nowMs);
       const lastAt = await getLastReflectionAt();
       const cache = await getRollingReflectionCache();
+      const prevGrace = await getPreviousWeekGrace();
+      const prevCache = await getPreviousWeekReflectionCache();
 
       const weekStartDay = await getWeekStartDay();
       setWeekStartDay(weekStartDay);
@@ -66,6 +79,13 @@ export function ReviewScreen(): React.JSX.Element {
       setFirstAppUseAtIso(firstUse);
       setLastReflectionAtIso(lastAt);
       setCachedGeneratedAtIso(cache?.generatedAt ?? null);
+      setPreviousWeekUsed(prevGrace.used);
+
+      const prevWeek = getPreviousWeekRange(nowMs, weekStartDay);
+      const prevStartIso = prevWeek.start.toISOString();
+      const prevEndIso = prevWeek.end.toISOString();
+      const prevCacheMatchesWindow = prevCache && prevCache.windowStartIso === prevStartIso && prevCache.windowEndIso === prevEndIso;
+      setPreviousWeekReflection(prevCacheMatchesWindow ? prevCache.reflectionText : null);
 
       setSnapshot({
         ...s,
@@ -85,18 +105,97 @@ export function ReviewScreen(): React.JSX.Element {
 
       if (cacheIsForWindow && isLastDayOfWeek) {
         setReflection(cache.reflectionText);
-        setObservedPattern(cache.observedPatternText);
-        setQuestion(cache.gentleQuestionText);
       } else {
         setReflection(null);
-        setObservedPattern(null);
-        setQuestion(null);
       }
       setStatus('idle');
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Could not load your weekly review.';
       setError(message);
       setStatus('error');
+    }
+  };
+
+  const canGeneratePreviousWeek = useMemo(() => {
+    return isSubscribed && !generatingPreviousWeek && !previousWeekUsed && snapshot !== null;
+  }, [generatingPreviousWeek, isSubscribed, previousWeekUsed, snapshot]);
+
+  const onGeneratePreviousWeek = async (): Promise<void> => {
+    if (generatingPreviousWeek) return;
+    if (!isSubscribed) return;
+    if (previousWeekUsed) return;
+
+    setGeneratingPreviousWeek(true);
+    setError(null);
+    try {
+      const nowMs = Date.now();
+      const prevWeekNowMs = nowMs - 7 * 24 * 60 * 60 * 1000;
+      const weekStartDay = await getWeekStartDay();
+
+      const s = await getWeeklyReviewDetail(prevWeekNowMs, weekStartDay);
+      const windowStartIso = new Date(s.windowStartAt).toISOString();
+      const windowEndIso = new Date(s.windowEndAt).toISOString();
+
+      let reflectionText: string;
+      try {
+        const created = await generateRollingReflection({
+          windowStartIso,
+          windowEndIso,
+          metrics: {
+            decisionCount: s.decisionCount,
+            focusCopy: s.focusCopy,
+            mostCommonCategory: s.mostCommonCategory,
+            decisionFocus: {
+              focusCategory: s.decisionFocus.focusCategory ? categoryLabel(s.decisionFocus.focusCategory) : null,
+              isTie: s.decisionFocus.isTie,
+            },
+            confidenceByCategoryInsight: {
+              kind: s.confidenceByCategoryInsight.kind,
+              category: s.confidenceByCategoryInsight.category ? categoryLabel(s.confidenceByCategoryInsight.category) : null,
+            },
+            avgConfidence: s.avgConfidence,
+            confidenceTrend: s.confidenceTrend,
+            directionStatus: s.directionStatus,
+            notablePatterns: s.notablePatterns,
+          },
+        });
+        reflectionText = created.reflectionText;
+      } catch {
+        const installId = await getOrCreateInstallId();
+        const composed = composeWeeklyReflection({
+          userId: installId,
+          weekStartDate: windowStartIso,
+          weekEndDate: windowEndIso,
+          metrics: {
+            decisionCount: s.decisionCount,
+            topCategory: s.mostCommonCategory ? categoryLabel(s.mostCommonCategory) : null,
+            secondaryCategory: s.secondaryCategory ? categoryLabel(s.secondaryCategory) : null,
+            categoryOverlaps: s.categoryOverlaps ? { a: categoryLabel(s.categoryOverlaps.a), b: categoryLabel(s.categoryOverlaps.b) } : null,
+            avgConfidence: s.avgConfidence,
+            confidenceTrend: s.confidenceTrend,
+            mostRepeatedTag: s.mostRepeatedTag,
+            daysWithDecisions: s.daysWithDecisions,
+          },
+        });
+        reflectionText = composed.text;
+      }
+
+      const nowIso = new Date().toISOString();
+      await setPreviousWeekReflectionCache({
+        windowStartIso,
+        windowEndIso,
+        generatedAtIso: nowIso,
+        reflectionText,
+      });
+      await setPreviousWeekGrace({ used: true, usedAtIso: nowIso });
+
+      setPreviousWeekUsed(true);
+      setPreviousWeekReflection(reflectionText);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Could not generate a reflection.';
+      setError(message);
+    } finally {
+      setGeneratingPreviousWeek(false);
     }
   };
 
@@ -109,44 +208,27 @@ export function ReviewScreen(): React.JSX.Element {
       const weekStartDay = await getWeekStartDay();
       const nowMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
       const s = await getWeeklyReviewDetail(nowMs, weekStartDay);
-      const history = await getGentleQuestionHistory();
 
-      const created = await generateRollingReflection({
-        windowStartIso: new Date(s.windowStartAt).toISOString(),
-        windowEndIso: new Date(s.windowEndAt).toISOString(),
+      const installId = await getOrCreateInstallId();
+      const composed = composeWeeklyReflection({
+        userId: installId,
+        weekStartDate: new Date(s.windowStartAt).toISOString(),
+        weekEndDate: new Date(s.windowEndAt).toISOString(),
         metrics: {
           decisionCount: s.decisionCount,
-          focusCopy: s.focusCopy,
-          mostCommonCategory: s.mostCommonCategory,
-          decisionFocus: {
-            focusCategory: s.decisionFocus.focusCategory ? categoryLabel(s.decisionFocus.focusCategory) : null,
-            isTie: s.decisionFocus.isTie,
-          },
-          confidenceByCategoryInsight: {
-            kind: s.confidenceByCategoryInsight.kind,
-            category: s.confidenceByCategoryInsight.category ? categoryLabel(s.confidenceByCategoryInsight.category) : null,
-          },
+          topCategory: s.mostCommonCategory ? categoryLabel(s.mostCommonCategory) : null,
+          secondaryCategory: s.secondaryCategory ? categoryLabel(s.secondaryCategory) : null,
+          categoryOverlaps: s.categoryOverlaps
+            ? { a: categoryLabel(s.categoryOverlaps.a), b: categoryLabel(s.categoryOverlaps.b) }
+            : null,
           avgConfidence: s.avgConfidence,
           confidenceTrend: s.confidenceTrend,
-          directionStatus: s.directionStatus,
-          notablePatterns: s.notablePatterns,
+          mostRepeatedTag: s.mostRepeatedTag,
+          daysWithDecisions: s.daysWithDecisions,
         },
       });
 
-      const selected = selectGentleQuestion(
-        {
-          decisionCount: s.decisionCount,
-          mostCommonCategory: s.mostCommonCategory,
-          confidenceTrend: s.confidenceTrend,
-          directionStatus: s.directionStatus,
-        },
-        history,
-        { cooldownWeeks: 6 }
-      );
-
-      setReflection(created.reflectionText);
-      setObservedPattern(created.observedPatternText);
-      setQuestion(selected.renderedText);
+      setReflection(composed.text);
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Could not generate a reflection.';
       setError(message);
@@ -190,6 +272,12 @@ export function ReviewScreen(): React.JSX.Element {
     return !generating && snapshot !== null && unlockState?.kind === 'UNLOCKED';
   }, [generating, snapshot, unlockState]);
 
+  const daysLabel = useMemo(() => {
+    const n = unlockState && 'daysRemaining' in unlockState ? unlockState.daysRemaining : null;
+    if (n === null) return null;
+    return n === 1 ? 'day' : 'days';
+  }, [unlockState]);
+
   const onGenerate = async (): Promise<void> => {
     if (!snapshot || generating) return;
     if (unlockState?.kind !== 'UNLOCKED') return;
@@ -197,66 +285,110 @@ export function ReviewScreen(): React.JSX.Element {
     setGenerating(true);
     setError(null);
     try {
-      const history = await getGentleQuestionHistory();
+      const created = isSubscribed
+        ? await generateRollingReflection({
+            windowStartIso: snapshot.windowStartIso,
+            windowEndIso: snapshot.windowEndIso,
+            metrics: {
+              decisionCount: snapshot.decisionCount,
+              focusCopy: snapshot.focusCopy,
+              mostCommonCategory: snapshot.mostCommonCategory,
+              decisionFocus: {
+                focusCategory: snapshot.decisionFocus.focusCategory ? categoryLabel(snapshot.decisionFocus.focusCategory) : null,
+                isTie: snapshot.decisionFocus.isTie,
+              },
+              confidenceByCategoryInsight: {
+                kind: snapshot.confidenceByCategoryInsight.kind,
+                category: snapshot.confidenceByCategoryInsight.category
+                  ? categoryLabel(snapshot.confidenceByCategoryInsight.category)
+                  : null,
+              },
+              avgConfidence: snapshot.avgConfidence,
+              confidenceTrend: snapshot.confidenceTrend,
+              directionStatus: snapshot.directionStatus,
+              notablePatterns: snapshot.notablePatterns,
+            },
+          })
+        : (() => {
+            throw new Error('FREE_COMPOSER');
+          })();
 
-      const created = await generateRollingReflection({
-        windowStartIso: snapshot.windowStartIso,
-        windowEndIso: snapshot.windowEndIso,
+      const installId = await getOrCreateInstallId();
+      const composed = composeWeeklyReflection({
+        userId: installId,
+        weekStartDate: snapshot.windowStartIso,
+        weekEndDate: snapshot.windowEndIso,
         metrics: {
           decisionCount: snapshot.decisionCount,
-          focusCopy: snapshot.focusCopy,
-          mostCommonCategory: snapshot.mostCommonCategory,
-          decisionFocus: {
-            focusCategory: snapshot.decisionFocus.focusCategory ? categoryLabel(snapshot.decisionFocus.focusCategory) : null,
-            isTie: snapshot.decisionFocus.isTie,
-          },
-          confidenceByCategoryInsight: {
-            kind: snapshot.confidenceByCategoryInsight.kind,
-            category: snapshot.confidenceByCategoryInsight.category ? categoryLabel(snapshot.confidenceByCategoryInsight.category) : null,
-          },
+          topCategory: snapshot.mostCommonCategory ? categoryLabel(snapshot.mostCommonCategory) : null,
+          secondaryCategory: snapshot.secondaryCategory ? categoryLabel(snapshot.secondaryCategory) : null,
+          categoryOverlaps: snapshot.categoryOverlaps
+            ? { a: categoryLabel(snapshot.categoryOverlaps.a), b: categoryLabel(snapshot.categoryOverlaps.b) }
+            : null,
           avgConfidence: snapshot.avgConfidence,
           confidenceTrend: snapshot.confidenceTrend,
-          directionStatus: snapshot.directionStatus,
-          notablePatterns: snapshot.notablePatterns,
+          mostRepeatedTag: snapshot.mostRepeatedTag,
+          daysWithDecisions: snapshot.daysWithDecisions,
         },
       });
-
-      const selected = selectGentleQuestion(
-        {
-          decisionCount: snapshot.decisionCount,
-          mostCommonCategory: snapshot.mostCommonCategory,
-          confidenceTrend: snapshot.confidenceTrend,
-          directionStatus: snapshot.directionStatus,
-        },
-        history,
-        { cooldownWeeks: 6 }
-      );
 
       const nowIso = new Date().toISOString();
       await setRollingReflectionCache({
         windowStart: snapshot.windowStartIso,
         windowEnd: snapshot.windowEndIso,
         generatedAt: nowIso,
-        reflectionText: created.reflectionText,
-        observedPatternText: created.observedPatternText,
-        gentleQuestionText: selected.renderedText,
+        reflectionText: isSubscribed ? created.reflectionText : composed.text,
+        observedPatternText: isSubscribed ? created.observedPatternText : '',
+        gentleQuestionText: null,
       });
       await setLastReflectionAt(nowIso);
 
-      await setGentleQuestionHistory(
-        nextGentleQuestionHistory({
-          selectedQuestionId: selected.question.id,
-          previous: history,
-          maxItems: 12,
-        })
-      );
-
       setLastReflectionAtIso(nowIso);
       setCachedGeneratedAtIso(nowIso);
-      setReflection(created.reflectionText);
-      setObservedPattern(created.observedPatternText);
-      setQuestion(selected.renderedText);
+      setReflection(isSubscribed ? created.reflectionText : composed.text);
     } catch (e) {
+      if (!isSubscribed && e instanceof Error && e.message === 'FREE_COMPOSER') {
+        try {
+          const installId = await getOrCreateInstallId();
+          const composed = composeWeeklyReflection({
+            userId: installId,
+            weekStartDate: snapshot!.windowStartIso,
+            weekEndDate: snapshot!.windowEndIso,
+            metrics: {
+              decisionCount: snapshot!.decisionCount,
+              topCategory: snapshot!.mostCommonCategory ? categoryLabel(snapshot!.mostCommonCategory) : null,
+              secondaryCategory: snapshot!.secondaryCategory ? categoryLabel(snapshot!.secondaryCategory) : null,
+              categoryOverlaps: snapshot!.categoryOverlaps
+                ? { a: categoryLabel(snapshot!.categoryOverlaps.a), b: categoryLabel(snapshot!.categoryOverlaps.b) }
+                : null,
+              avgConfidence: snapshot!.avgConfidence,
+              confidenceTrend: snapshot!.confidenceTrend,
+              mostRepeatedTag: snapshot!.mostRepeatedTag,
+              daysWithDecisions: snapshot!.daysWithDecisions,
+            },
+          });
+
+          const nowIso = new Date().toISOString();
+          await setRollingReflectionCache({
+            windowStart: snapshot!.windowStartIso,
+            windowEnd: snapshot!.windowEndIso,
+            generatedAt: nowIso,
+            reflectionText: composed.text,
+            observedPatternText: '',
+            gentleQuestionText: null,
+          });
+          await setLastReflectionAt(nowIso);
+
+          setLastReflectionAtIso(nowIso);
+          setCachedGeneratedAtIso(nowIso);
+          setReflection(composed.text);
+          return;
+        } catch (inner) {
+          const message = inner instanceof Error ? inner.message : 'Could not generate a reflection.';
+          setError(message);
+          return;
+        }
+      }
       const message = e instanceof Error ? e.message : 'Could not generate a reflection.';
       setError(message);
     } finally {
@@ -320,18 +452,18 @@ export function ReviewScreen(): React.JSX.Element {
           <View style={styles.spacer} />
 
           <Card>
-            <Text style={[styles.cardTitle, { color: c.textPrimary }]}>Reflection</Text>
-            <Text style={[styles.cardBody, { color: c.textSecondary }]}>This reflection summarizes how your decisions felt this week.</Text>
+            <Text style={[styles.cardTitle, { color: c.textPrimary }]}>Weekly Reflection</Text>
+            <Text style={[styles.cardBody, { color: c.textSecondary }]}>A calm summary of what you recorded this week.</Text>
 
             {!reflection ? (
               <View style={styles.footer}>
                 {unlockState?.kind === 'LOCKED_TIME' ? (
                   <Text style={[styles.cardBody, { color: c.textSecondary }]}>
-                    Your next reflection will be ready in {unlockState.daysRemaining} days.
+                    Your next reflection will be ready in {unlockState.daysRemaining} {daysLabel}.
                   </Text>
                 ) : unlockState?.kind === 'LOCKED_WEEKDAY' ? (
                   <Text style={[styles.cardBody, { color: c.textSecondary }]}>
-                    Your reflection is available on the last day of your week (in {unlockState.daysRemaining} days).
+                    Your reflection is available on the last day of your week (in {unlockState.daysRemaining} {daysLabel}).
                   </Text>
                 ) : unlockState?.kind === 'LOCKED_DATA' ? (
                   <Text style={[styles.cardBody, { color: c.textSecondary }]}>Log at least one decision this week to generate a reflection.</Text>
@@ -339,7 +471,7 @@ export function ReviewScreen(): React.JSX.Element {
                   <Text style={[styles.cardBody, { color: c.textSecondary }]}>Take a moment to reflect on your week.</Text>
                 ) : null}
                 <AppButton
-                  title={generating ? 'Generating…' : 'Generate Reflection'}
+                  title={generating ? 'Generating…' : 'Generate Weekly Reflection'}
                   onPress={onGenerate}
                   disabled={!canGenerate}
                 />
@@ -350,9 +482,6 @@ export function ReviewScreen(): React.JSX.Element {
                   <Text style={[styles.cardBody, { color: c.textSecondary }]}>This week’s reflection</Text>
                 ) : null}
                 <Text style={[styles.reflectionText, { color: c.textPrimary }]}>{reflection}</Text>
-                <View style={styles.spacerSmall} />
-                <Text style={[styles.cardBody, { color: c.textSecondary }]}>Observed pattern</Text>
-                <Text style={[styles.reflectionText, { color: c.textPrimary }]}>{observedPattern ?? '—'}</Text>
               </>
             )}
           </Card>
@@ -360,9 +489,29 @@ export function ReviewScreen(): React.JSX.Element {
           <View style={styles.spacer} />
 
           <Card>
-            <Text style={[styles.cardTitle, { color: c.textPrimary }]}>Gentle Question</Text>
-            <Text style={[styles.cardBody, { color: c.textSecondary }]}>Optional. No answer required.</Text>
-            <Text style={[styles.reflectionText, { color: c.textPrimary }]}>{question ?? '—'}</Text>
+            <Text style={[styles.cardTitle, { color: c.textPrimary }]}>Previous Week Reflection</Text>
+            <Text style={[styles.cardBody, { color: c.textSecondary }]}>A one-time look back, if you missed last week.</Text>
+
+            {previousWeekReflection ? (
+              <Text style={[styles.reflectionText, { color: c.textPrimary }]}>{previousWeekReflection}</Text>
+            ) : (
+              <View style={styles.footer}>
+                {!isSubscribed ? (
+                  <Text style={[styles.cardBody, { color: c.textSecondary }]}>Available with PONDR Plus.</Text>
+                ) : previousWeekUsed ? (
+                  <Text style={[styles.cardBody, { color: c.textSecondary }]}>You’ve already used your previous-week reflection.</Text>
+                ) : (
+                  <Text style={[styles.cardBody, { color: c.textSecondary }]}>If you’d like, you can generate last week’s reflection once.</Text>
+                )}
+
+                <AppButton
+                  title={generatingPreviousWeek ? 'Generating…' : !isSubscribed ? 'Learn more' : previousWeekUsed ? 'Used' : 'Generate Previous Week'}
+                  variant={!isSubscribed ? 'secondary' : undefined}
+                  onPress={!isSubscribed ? () => navigation.navigate('PONDRPlus' as never) : onGeneratePreviousWeek}
+                  disabled={!isSubscribed ? false : !canGeneratePreviousWeek}
+                />
+              </View>
+            )}
           </Card>
 
           {error ? (

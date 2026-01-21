@@ -6,7 +6,7 @@ import { colors } from '../../theme/colors';
 type Variant = 'primary' | 'secondary' | 'ghost';
 
 export function AppButton(props: {
-  title: string;
+  title: React.ReactNode;
   onPress: () => void;
   disabled?: boolean;
   variant?: Variant;

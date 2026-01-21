@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bjyc17.pondr",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,10 +25,21 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.bjyc17.pondr"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "revenuecat": {
+        "sdkKey": "test_VtctVdbzJsSNkHsUhvDZvXlQwmZ",
+        "entitlementId": "pondr_plus",
+        "productId": ""
+      },
+      "eas": {
+        "projectId": "8a6dbbd4-f37a-408b-963c-696d24c2f6d9"
+      }
     },
     "plugins": [
       "expo-sqlite",

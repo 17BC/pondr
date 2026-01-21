@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppButton } from '../components/common/AppButton';
 import { Card } from '../components/common/Card';
 import type { MainStackParamList } from '../navigation/types';
+import { revenueCatCheckStatus } from '../services/subscription/revenuecat';
 import { useSubscriptionStore } from '../store/useSubscriptionStore';
 import { colors } from '../theme/colors';
 
@@ -15,17 +16,48 @@ export function PONDRPlusScreen(props: Props): React.JSX.Element {
 
   const status = useSubscriptionStore((s) => s.status);
   const isSubscribed = useSubscriptionStore((s) => s.isSubscribed);
+  const source = useSubscriptionStore((s) => s.source);
+  const lastSyncedAtMs = useSubscriptionStore((s) => s.lastSyncedAtMs);
+  const currentPeriodEndAtMs = useSubscriptionStore((s) => s.currentPeriodEndAtMs);
   const error = useSubscriptionStore((s) => s.error);
   const refresh = useSubscriptionStore((s) => s.refresh);
-  const subscribeDev = useSubscriptionStore((s) => s.subscribeDev);
+  const subscribe = useSubscriptionStore((s) => s.subscribe);
+  const restore = useSubscriptionStore((s) => s.restore);
+  const resetDev = useSubscriptionStore((s) => s.resetDev);
+
+  const [rcStatusText, setRcStatusText] = useState<string | null>(null);
+  const [rcChecking, setRcChecking] = useState(false);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
+  const checkRevenueCat = async (): Promise<void> => {
+    if (rcChecking) return;
+    setRcChecking(true);
+    try {
+      const s = await revenueCatCheckStatus();
+      setRcStatusText(
+        `rc: configured=${String(s.configured)} sdkKey=${String(s.sdkKeyPresent)} productId=${String(
+          s.productIdPresent,
+        )} customerInfo=${String(s.customerInfoOk)} entitlementId=${s.entitlementId} entitlementActive=${String(
+          s.activeEntitlement,
+        )} activeIds=${s.activeEntitlementIds.join(',') || '—'} offeringsCurrent=${String(
+          s.offeringsCurrentOk,
+        )} packages=${String(s.availablePackagesCount)} pkgIds=${s.availablePackageIds.join(',') || '—'} prodIds=${
+          s.availableProductIds.join(',') || '—'
+        }${s.error ? ` error=${s.error}` : ''}`,
+      );
+    } finally {
+      setRcChecking(false);
+    }
+  };
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: c.primaryMuted }]} contentContainerStyle={styles.content}>
-      <Text style={[styles.title, { color: c.textPrimary }]}>P<Image source={require('../../assets/pondr_icon_1.png')} style={styles.titleIcon} />{'\u200A'}NDR Plus</Text>
+      <Text style={[styles.title, { color: c.textPrimary }]}>
+        P{'\u200A'}<Image source={require('../../assets/pondr_icon_3.png')} style={styles.titleIcon} />{'\u200A'}NDR Plus
+      </Text>
       <Text style={[styles.subtitle, { color: c.textSecondary }]}>More room to reflect, at your own pace.</Text>
 
       <View style={styles.spacer} />
@@ -53,12 +85,35 @@ export function PONDRPlusScreen(props: Props): React.JSX.Element {
         <Text style={[styles.price, { color: c.textPrimary }]}>$1 / month</Text>
         <Text style={[styles.caption, { color: c.textMuted }]}>Cancel anytime.</Text>
 
+        {__DEV__ ? (
+          <>
+            <Text style={[styles.debugText, { color: c.textMuted }]}>
+              {`debug: subscribed=${String(isSubscribed)} source=${source} end=${currentPeriodEndAtMs ?? '—'} synced=${
+                lastSyncedAtMs ?? '—'
+              }`}
+            </Text>
+            <View style={styles.spacerSmall} />
+            {rcStatusText ? <Text style={[styles.debugText, { color: c.textMuted }]}>{rcStatusText}</Text> : null}
+            <View style={styles.spacerSmall} />
+            <AppButton
+              title={rcChecking ? 'Checking RevenueCat…' : 'Check RevenueCat status (Dev)'}
+              variant="secondary"
+              onPress={checkRevenueCat}
+              disabled={rcChecking}
+            />
+            <View style={styles.spacerSmall} />
+            <AppButton title="Reset subscription (Dev)" variant="secondary" onPress={resetDev} />
+          </>
+        ) : null}
+
         <View style={styles.ctaRow}>
           <AppButton
             title={isSubscribed ? 'Subscribed' : status === 'loading' ? 'Preparing…' : 'Subscribe'}
-            onPress={subscribeDev}
+            onPress={subscribe}
             disabled={isSubscribed || status === 'loading'}
           />
+          <View style={styles.ctaSpacer} />
+          <AppButton title="Restore purchases" variant="secondary" onPress={restore} />
           <View style={styles.ctaSpacer} />
           <AppButton title="Not now" variant="secondary" onPress={() => props.navigation.goBack()} />
         </View>
@@ -128,6 +183,11 @@ const styles = StyleSheet.create({
   caption: {
     marginTop: 4,
     fontSize: 12,
+    fontWeight: '600',
+  },
+  debugText: {
+    marginTop: 8,
+    fontSize: 11,
     fontWeight: '600',
   },
   ctaRow: {
