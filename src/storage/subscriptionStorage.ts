@@ -10,6 +10,7 @@ export type StoredEntitlement = {
 };
 
 const SUBSCRIPTION_KEY = '@cnsdr_subscription';
+const PLUS_CONTINUE_KEY = '@cnsdr_plus_continue_pending';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object';
@@ -81,4 +82,17 @@ export async function setStoredSubscription(input: StoredEntitlement): Promise<v
 
 export async function clearStoredSubscription(): Promise<void> {
   await AsyncStorage.removeItem(SUBSCRIPTION_KEY);
+}
+
+export async function getPlusContinuePending(): Promise<boolean> {
+  const raw = await AsyncStorage.getItem(PLUS_CONTINUE_KEY);
+  return raw === '1';
+}
+
+export async function setPlusContinuePending(value: boolean): Promise<void> {
+  await AsyncStorage.setItem(PLUS_CONTINUE_KEY, value ? '1' : '0');
+}
+
+export async function clearPlusContinuePending(): Promise<void> {
+  await AsyncStorage.removeItem(PLUS_CONTINUE_KEY);
 }

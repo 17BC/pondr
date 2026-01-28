@@ -12,6 +12,7 @@ import { colors } from '../theme/colors';
 import { scheduleDevTestNotification } from '../notifications/notificationScheduler';
 import { useOnboardingStore } from '../store/useOnboardingStore';
 import { useInsightsStore } from '../store/useInsightsStore';
+import { useSubscriptionStore } from '../store/useSubscriptionStore';
 import type { TabParamList } from '../navigation/types';
 import type { MainStackParamList } from '../navigation/types';
 import type { WeekStartDay } from '../settings/weekSettings';
@@ -24,6 +25,7 @@ export function SettingsScreen(): React.JSX.Element {
   >();
   const resetOnboarding = useOnboardingStore((s) => s.reset);
   const setInsightsNowMsOverride = useInsightsStore((s) => s.setNowMsOverride);
+  const isSubscribed = useSubscriptionStore((s) => s.isSubscribed);
 
   const [weekStartDay, setWeekStartDayState] = useState<WeekStartDay>(1);
 
@@ -74,7 +76,11 @@ export function SettingsScreen(): React.JSX.Element {
         </Text>
         <Text style={[styles.cardText, { color: c.textSecondary }]}>Optional flexibility for reflecting on past weeks and monthly patterns.</Text>
         <View style={styles.buttonRow}>
-          <AppButton title="Learn more" variant="secondary" onPress={() => navigation.navigate('PONDRPlus')} />
+          <AppButton
+            title={isSubscribed ? 'Manage Subscription' : 'Learn more'}
+            variant="secondary"
+            onPress={() => navigation.navigate('PONDRPlus', { entry: 'settings' })}
+          />
         </View>
       </Card>
 
@@ -87,7 +93,11 @@ export function SettingsScreen(): React.JSX.Element {
           A gentle look at patterns across the month.
         </Text>
         <View style={styles.buttonRow}>
-          <AppButton title="Open" variant="secondary" onPress={() => navigation.navigate('MonthlyReflection')} />
+          <AppButton
+            title={isSubscribed ? 'Open' : 'Available on PONDR Plus'}
+            variant="secondary"
+            onPress={() => (isSubscribed ? navigation.navigate('MonthlyReflection') : navigation.navigate('PONDRPlus'))}
+          />
         </View>
       </Card>
 

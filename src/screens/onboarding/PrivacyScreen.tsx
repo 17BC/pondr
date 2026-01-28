@@ -42,11 +42,14 @@ export function PrivacyScreen(_props: Props): React.JSX.Element {
       <View style={styles.footer}>
         <AppButton
           title={
-            <>
+            <React.Fragment>
               Start using P{'\u200A'}
-              <Image source={require('../../../assets/pondr_icon_3.png')} style={styles.wordmarkIconButton} />
+              <Image
+                source={require('../../../assets/pondr_icon_3.png')}
+                style={[styles.wordmarkIconButton, { tintColor: c.surface }]}
+              />
               {'\u200A'}NDR
-            </>
+            </React.Fragment>
           }
           onPress={complete}
         />
@@ -58,17 +61,20 @@ export function PrivacyScreen(_props: Props): React.JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: '25%',
+    paddingBottom: 20,
   },
   title: {
-    marginTop: 28,
     fontSize: 24,
     fontWeight: '800',
+    textAlign: 'center',
   },
   subtitle: {
     marginTop: 8,
     fontSize: 14,
     lineHeight: 20,
+    textAlign: 'center',
   },
   wordmarkIcon: {
     width: 11,
@@ -98,8 +104,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   footer: {
-    marginTop: 'auto',
-    paddingTop: 16,
+    marginTop: 16,
   },
   wordmarkIconButton: {
     width: 14,

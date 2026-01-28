@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppButton } from '../components/common/AppButton';
 import { Card } from '../components/common/Card';
 import type { MainStackParamList } from '../navigation/types';
-import { revenueCatCheckStatus } from '../services/subscription/revenuecat';
+import { revenueCatCheckStatus, revenueCatShowManageSubscriptions } from '../services/subscription/revenuecat';
+import { clearPlusContinuePending, getPlusContinuePending } from '../storage/subscriptionStorage';
 import { useSubscriptionStore } from '../store/useSubscriptionStore';
 import { colors } from '../theme/colors';
 
@@ -25,12 +26,68 @@ export function PONDRPlusScreen(props: Props): React.JSX.Element {
   const restore = useSubscriptionStore((s) => s.restore);
   const resetDev = useSubscriptionStore((s) => s.resetDev);
 
+  const [continuePending, setContinuePendingState] = useState(false);
+  const [managing, setManaging] = useState(false);
+
+  const [showDevTools, setShowDevTools] = useState(false);
   const [rcStatusText, setRcStatusText] = useState<string | null>(null);
   const [rcChecking, setRcChecking] = useState(false);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const pending = await getPlusContinuePending();
+      if (!alive) return;
+      setContinuePendingState(pending);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const entry = props.route.params?.entry ?? 'other';
+  const showManage = entry === 'settings' && isSubscribed;
+
+  const ctaTitle = useMemo(() => {
+    if (!isSubscribed) return 'Subscribe for $1 / month';
+    if (showManage) return 'Manage subscription';
+    if (continuePending) return 'Continue';
+    return 'Not now';
+  }, [continuePending, isSubscribed, showManage]);
+
+  const onPressCta = async (): Promise<void> => {
+    if (!isSubscribed) {
+      await subscribe();
+      return;
+    }
+
+    if (showManage) {
+      if (managing) return;
+      setManaging(true);
+      try {
+        const opened = await revenueCatShowManageSubscriptions();
+        if (!opened) {
+          // If platform UI isn't available, just keep the user here.
+        }
+      } finally {
+        setManaging(false);
+      }
+      return;
+    }
+
+    if (continuePending) {
+      await clearPlusContinuePending();
+      setContinuePendingState(false);
+      props.navigation.goBack();
+      return;
+    }
+
+    props.navigation.goBack();
+  };
 
   const checkRevenueCat = async (): Promise<void> => {
     if (rcChecking) return;
@@ -55,68 +112,65 @@ export function PONDRPlusScreen(props: Props): React.JSX.Element {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: c.primaryMuted }]} contentContainerStyle={styles.content}>
-      <Text style={[styles.title, { color: c.textPrimary }]}>
-        P{'\u200A'}<Image source={require('../../assets/pondr_icon_3.png')} style={styles.titleIcon} />{'\u200A'}NDR Plus
-      </Text>
-      <Text style={[styles.subtitle, { color: c.textSecondary }]}>More room to reflect, at your own pace.</Text>
+      <Text style={[styles.title, { color: c.textPrimary }]}>PONDR Plus</Text>
+      <Text style={[styles.subtitle, { color: c.textSecondary }]}>Extra flexibility for reflection.</Text>
 
       <View style={styles.spacer} />
 
       <Card>
-        <Text style={[styles.body, { color: c.textSecondary }]}>PONDR Plus adds a bit of flexibility to the weekly rhythm. If you miss a reflection, you can still look back once. You’ll also receive a monthly reflection that brings together patterns over time.</Text>
-
-        <View style={styles.spacerSmall} />
-
-        <View style={styles.bulletRow}>
-          <View style={[styles.bulletDot, { backgroundColor: c.primary }]} />
-          <Text style={[styles.bulletText, { color: c.textPrimary }]}>Reflect once on the previous week if you missed it</Text>
-        </View>
-        <View style={styles.bulletRow}>
-          <View style={[styles.bulletDot, { backgroundColor: c.primary }]} />
-          <Text style={[styles.bulletText, { color: c.textPrimary }]}>Receive a monthly reflection summary</Text>
-        </View>
-        <View style={styles.bulletRow}>
-          <View style={[styles.bulletDot, { backgroundColor: c.primary }]} />
-          <Text style={[styles.bulletText, { color: c.textPrimary }]}>Everything stays private and intentional</Text>
-        </View>
+        <Text style={[styles.body, { color: c.textSecondary }]}>
+          PONDR Plus doesn’t change how the app works.
+          {'\n'}It adds a bit more flexibility to the weekly rhythm.
+          {'\n'}
+          {'\n'}If you miss a reflection, you can still look back once.
+          {'\n'}You’ll also receive a monthly reflection that gathers patterns over time.
+          {'\n'}
+          {'\n'}Everything else stays the same.
+          {'\n'}No advice, no goals, no judgment.
+        </Text>
 
         <View style={styles.spacer} />
 
-        <Text style={[styles.price, { color: c.textPrimary }]}>$1 / month</Text>
-        <Text style={[styles.caption, { color: c.textMuted }]}>Cancel anytime.</Text>
-
-        {__DEV__ ? (
-          <>
-            <Text style={[styles.debugText, { color: c.textMuted }]}>
-              {`debug: subscribed=${String(isSubscribed)} source=${source} end=${currentPeriodEndAtMs ?? '—'} synced=${
-                lastSyncedAtMs ?? '—'
-              }`}
-            </Text>
-            <View style={styles.spacerSmall} />
-            {rcStatusText ? <Text style={[styles.debugText, { color: c.textMuted }]}>{rcStatusText}</Text> : null}
-            <View style={styles.spacerSmall} />
-            <AppButton
-              title={rcChecking ? 'Checking RevenueCat…' : 'Check RevenueCat status (Dev)'}
-              variant="secondary"
-              onPress={checkRevenueCat}
-              disabled={rcChecking}
-            />
-            <View style={styles.spacerSmall} />
-            <AppButton title="Reset subscription (Dev)" variant="secondary" onPress={resetDev} />
-          </>
-        ) : null}
+        <Text style={[styles.footerReassurance, { color: c.textMuted }]}>Your data stays on your device.</Text>
+        <Text style={[styles.footerReassurance, { color: c.textMuted }]}>Cancel anytime through your app store.</Text>
 
         <View style={styles.ctaRow}>
-          <AppButton
-            title={isSubscribed ? 'Subscribed' : status === 'loading' ? 'Preparing…' : 'Subscribe'}
-            onPress={subscribe}
-            disabled={isSubscribed || status === 'loading'}
-          />
+          <AppButton title={status === 'loading' ? 'Preparing…' : ctaTitle} onPress={onPressCta} disabled={status === 'loading' || managing} />
           <View style={styles.ctaSpacer} />
-          <AppButton title="Restore purchases" variant="secondary" onPress={restore} />
-          <View style={styles.ctaSpacer} />
-          <AppButton title="Not now" variant="secondary" onPress={() => props.navigation.goBack()} />
+          {!showManage ? <AppButton title="Restore purchases" variant="secondary" onPress={restore} /> : null}
         </View>
+
+        {__DEV__ ? (
+          <View style={styles.devToolsSection}>
+            <View style={styles.ctaSpacer} />
+            <AppButton
+              title={showDevTools ? 'Hide dev tools' : 'Show dev tools'}
+              variant="secondary"
+              onPress={() => setShowDevTools((v) => !v)}
+            />
+
+            {showDevTools ? (
+              <>
+                <Text style={[styles.devText, { color: c.textMuted }]}>
+                  {`debug: subscribed=${String(isSubscribed)} source=${source} end=${currentPeriodEndAtMs ?? '—'} synced=${
+                    lastSyncedAtMs ?? '—'
+                  }`}
+                </Text>
+                {rcStatusText ? <Text style={[styles.devText, { color: c.textMuted }]}>{rcStatusText}</Text> : null}
+
+                <View style={styles.ctaSpacer} />
+                <AppButton
+                  title={rcChecking ? 'Checking RevenueCat…' : 'Check RevenueCat status (Dev)'}
+                  variant="secondary"
+                  onPress={checkRevenueCat}
+                  disabled={rcChecking}
+                />
+                <View style={styles.ctaSpacer} />
+                <AppButton title="Reset subscription (Dev)" variant="secondary" onPress={resetDev} />
+              </>
+            ) : null}
+          </View>
+        ) : null}
 
         {error ? <Text style={[styles.inlineError, { color: c.warning }]}>{error}</Text> : null}
       </Card>
@@ -134,19 +188,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: 1.2,
-  },
-  titleIcon: {
-    width: 26,
-    height: 26,
-    transform: [{ translateY: 2 }],
-    resizeMode: 'contain',
+    fontWeight: '800',
+    textAlign: 'center',
   },
   subtitle: {
     marginTop: 8,
     fontSize: 14,
     lineHeight: 20,
+    textAlign: 'center',
   },
   spacer: {
     height: 16,
@@ -155,39 +204,12 @@ const styles = StyleSheet.create({
     height: 10,
   },
   body: {
-    fontSize: 13,
-    lineHeight: 19,
-  },
-  bulletRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginTop: 10,
-  },
-  bulletDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 8,
-    marginTop: 7,
-    marginRight: 10,
-  },
-  bulletText: {
-    flex: 1,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: '600',
   },
-  price: {
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  caption: {
+  footerReassurance: {
     marginTop: 4,
     fontSize: 12,
-    fontWeight: '600',
-  },
-  debugText: {
-    marginTop: 8,
-    fontSize: 11,
     fontWeight: '600',
   },
   ctaRow: {
@@ -199,6 +221,14 @@ const styles = StyleSheet.create({
   inlineError: {
     marginTop: 12,
     fontSize: 13,
+    fontWeight: '600',
+  },
+  devToolsSection: {
+    marginTop: 12,
+  },
+  devText: {
+    marginTop: 10,
+    fontSize: 11,
     fontWeight: '600',
   },
 });

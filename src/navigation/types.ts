@@ -8,7 +8,7 @@ export type MainStackParamList = {
   QuickLog: undefined;
   DecisionDetails: { decisionId: string };
   DecisionEdit: { decisionId: string };
-  PONDRPlus: undefined;
+  PONDRPlus: { entry?: 'settings' | 'gated' | 'other' } | undefined;
   MonthlyReflection: undefined;
 };
 

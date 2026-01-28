@@ -1,8 +1,19 @@
 import { create } from 'zustand';
 
 import type { StoredEntitlement, SubscriptionTier } from '../storage/subscriptionStorage';
-import { clearStoredSubscription, getStoredSubscription, setStoredSubscription } from '../storage/subscriptionStorage';
-import { revenueCatPurchasePlus, revenueCatRestorePurchases, revenueCatSyncEntitlement } from '../services/subscription/revenuecat';
+import {
+  clearPlusContinuePending,
+  clearStoredSubscription,
+  getStoredSubscription,
+  setPlusContinuePending,
+  setStoredSubscription,
+} from '../storage/subscriptionStorage';
+import {
+  revenueCatLogOutDev,
+  revenueCatPurchasePlus,
+  revenueCatRestorePurchases,
+  revenueCatSyncEntitlement,
+} from '../services/subscription/revenuecat';
 
 type SubscriptionState = {
   status: 'loading' | 'idle' | 'error';
@@ -102,6 +113,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
       const purchased = await revenueCatPurchasePlus();
       if (purchased) {
         await setStoredSubscription(purchased);
+        await setPlusContinuePending(true);
         set({ status: 'idle' });
         await useSubscriptionStore.getState().refresh();
         return;
@@ -121,6 +133,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
       const restored = await revenueCatRestorePurchases();
       if (restored) {
         await setStoredSubscription(restored);
+        await clearPlusContinuePending();
       }
 
       set({ status: 'idle' });
@@ -181,7 +194,11 @@ export const useSubscriptionStore = create<SubscriptionState>((set) => ({
   resetDev: async () => {
     set({ error: null });
     try {
+      if (__DEV__) {
+        await revenueCatLogOutDev();
+      }
       await clearStoredSubscription();
+      await clearPlusContinuePending();
       set({
         status: 'idle',
         subscriptionTier: 'free',

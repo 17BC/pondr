@@ -116,6 +116,41 @@ export async function revenueCatPurchasePlus(): Promise<StoredEntitlement | null
   return entitlementFromCustomerInfo({ customerInfo, entitlementId: configured.config.entitlementId });
 }
 
+export async function revenueCatLogOutDev(): Promise<void> {
+  const configured = await ensureConfigured();
+  if (!configured) return;
+
+  try {
+    const infoResult = await configured.Purchases.getCustomerInfo();
+    const customerInfo = infoResult?.customerInfo ?? infoResult;
+    const appUserId: string =
+      typeof customerInfo?.originalAppUserId === 'string'
+        ? customerInfo.originalAppUserId
+        : typeof customerInfo?.appUserId === 'string'
+          ? customerInfo.appUserId
+          : '';
+
+    if (appUserId.startsWith('$RCAnonymousID:')) {
+      return;
+    }
+
+    await configured.Purchases.logOut();
+  } catch {
+    // ignore
+  }
+}
+
+export async function revenueCatShowManageSubscriptions(): Promise<boolean> {
+  const configured = await ensureConfigured();
+  if (!configured) return false;
+
+  const fn = configured.Purchases?.showManageSubscriptions;
+  if (typeof fn !== 'function') return false;
+
+  await fn();
+  return true;
+}
+
 export async function revenueCatCheckStatus(): Promise<RevenueCatStatus> {
   const config = readRevenueCatConfig();
   const Purchases = await getPurchasesModule();

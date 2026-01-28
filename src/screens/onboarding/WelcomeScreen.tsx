@@ -18,7 +18,7 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
         <Text style={[styles.title, { color: c.textPrimary }]}>
           P{'\u200A'}<Image source={require('../../../assets/pondr_icon_3.png')} style={styles.titleIcon} />{'\u200A'}NDR
         </Text>
-        <Text style={[styles.subtitle, { color: c.textSecondary }]}>Reflect on the decisions that matter.</Text>
+        <Text style={[styles.subtitle, { color: c.textSecondary }]}>Reflect on decisions that matter.</Text>
       </View>
 
       <Card>
@@ -38,16 +38,19 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: '25%',
+    paddingBottom: 20,
   },
   header: {
-    marginTop: 28,
     marginBottom: 16,
+    alignItems: 'center',
   },
   title: {
     fontSize: 36,
     fontWeight: '800',
     letterSpacing: 0.4,
+    textAlign: 'center',
   },
   titleIcon: {
     width: 30,
@@ -59,13 +62,13 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontSize: 16,
     fontWeight: '600',
+    textAlign: 'center',
   },
   copy: {
     fontSize: 15,
     lineHeight: 21,
   },
   footer: {
-    marginTop: 'auto',
-    paddingTop: 16,
+    marginTop: 16,
   },
 });
