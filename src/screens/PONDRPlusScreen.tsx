@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { AppButton } from '../components/common/AppButton';
@@ -112,14 +112,20 @@ export function PONDRPlusScreen(props: Props): React.JSX.Element {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: c.primaryMuted }]} contentContainerStyle={styles.content}>
-      <Text style={[styles.title, { color: c.textPrimary }]}>PONDR Plus</Text>
+      <Text style={[styles.title, { color: c.textPrimary }]}>
+        P{'\u200A'}
+        <Image source={require('../../assets/pondr_icon_5.png')} style={styles.inlineWordmarkTitleIcon} />
+        {'\u200A'}NDR Plus
+      </Text>
       <Text style={[styles.subtitle, { color: c.textSecondary }]}>Extra flexibility for reflection.</Text>
 
       <View style={styles.spacer} />
 
       <Card>
         <Text style={[styles.body, { color: c.textSecondary }]}>
-          PONDR Plus doesn’t change how the app works.
+          P{'\u200A'}
+          <Image source={require('../../assets/pondr_icon_5.png')} style={styles.inlineWordmarkBodyIcon} />
+          {'\u200A'}NDR Plus doesn’t change how the app works.
           {'\n'}It adds a bit more flexibility to the weekly rhythm.
           {'\n'}
           {'\n'}If you miss a reflection, you can still look back once.
@@ -191,6 +197,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
   },
+  inlineWordmarkTitleIcon: {
+    width: 28,
+    height: 28,
+    transform: [{ translateY: 2 }],
+    resizeMode: 'contain',
+  },
   subtitle: {
     marginTop: 8,
     fontSize: 14,
@@ -206,6 +218,12 @@ const styles = StyleSheet.create({
   body: {
     fontSize: 14,
     lineHeight: 20,
+  },
+  inlineWordmarkBodyIcon: {
+    width: 12,
+    height: 12,
+    transform: [{ translateY: 2 }],
+    resizeMode: 'contain',
   },
   footerReassurance: {
     marginTop: 4,

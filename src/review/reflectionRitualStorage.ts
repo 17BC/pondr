@@ -12,6 +12,7 @@ export type RollingReflectionCache = {
 const FIRST_APP_USE_AT_KEY = '@cnsdr_first_app_use_at';
 const LAST_REFLECTION_AT_KEY = '@cnsdr_last_reflection_at';
 const REFLECTION_CACHE_KEY = '@cnsdr_reflection_cache_rolling';
+const MONTHLY_REFLECTION_COMPLETED_MONTH_KEY = '@cnsdr_monthly_reflection_completed_month_key';
 
 export async function getFirstAppUseAt(): Promise<string | null> {
   const v = await AsyncStorage.getItem(FIRST_APP_USE_AT_KEY);
@@ -82,4 +83,14 @@ export async function getRollingReflectionCache(): Promise<RollingReflectionCach
 
 export async function setRollingReflectionCache(cache: RollingReflectionCache): Promise<void> {
   await AsyncStorage.setItem(REFLECTION_CACHE_KEY, JSON.stringify(cache));
+}
+
+export async function getMonthlyReflectionCompletedMonthKey(): Promise<string | null> {
+  const v = await AsyncStorage.getItem(MONTHLY_REFLECTION_COMPLETED_MONTH_KEY);
+  if (!v) return null;
+  return typeof v === 'string' ? v : null;
+}
+
+export async function setMonthlyReflectionCompletedMonthKey(monthKey: string): Promise<void> {
+  await AsyncStorage.setItem(MONTHLY_REFLECTION_COMPLETED_MONTH_KEY, monthKey);
 }

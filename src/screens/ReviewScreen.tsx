@@ -20,8 +20,10 @@ import { composeWeeklyReflection } from '../review/ReflectionComposer';
 import {
   ensureFirstAppUseAt,
   getLastReflectionAt,
+  getMonthlyReflectionCompletedMonthKey,
   getRollingReflectionCache,
   setLastReflectionAt,
+  setMonthlyReflectionCompletedMonthKey,
   setRollingReflectionCache,
 } from '../review/reflectionRitualStorage';
 import { getReviewUnlockState } from '../review/reflectionUnlock';
@@ -59,6 +61,28 @@ export function ReviewScreen(): React.JSX.Element {
   const [lastReflectionAtIso, setLastReflectionAtIso] = useState<string | null>(null);
   const [cachedGeneratedAtIso, setCachedGeneratedAtIso] = useState<string | null>(null);
   const [weekStartDay, setWeekStartDay] = useState<number>(1);
+  const [monthlyCompletedMonthKey, setMonthlyCompletedMonthKey] = useState<string | null>(null);
+
+  const monthKeyFromDate = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  };
+
+  const monthNameFromKey = (monthKey: string): string => {
+    const [y, m] = monthKey.split('-');
+    const year = Number(y);
+    const monthIdx = Number(m) - 1;
+    const d = new Date(year, monthIdx, 1);
+    return d.toLocaleString(undefined, { month: 'long' });
+  };
+
+  const isLastDayOfMonth = (d: Date): boolean => {
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const last = new Date(y, m + 1, 0);
+    return d.getDate() === last.getDate();
+  };
 
   const refresh = async (): Promise<void> => {
     setStatus('loading');
@@ -71,6 +95,7 @@ export function ReviewScreen(): React.JSX.Element {
       const cache = await getRollingReflectionCache();
       const prevGrace = await getPreviousWeekGrace();
       const prevCache = await getPreviousWeekReflectionCache();
+      const monthlyCompletedKey = await getMonthlyReflectionCompletedMonthKey();
 
       const weekStartDay = await getWeekStartDay();
       setWeekStartDay(weekStartDay);
@@ -80,6 +105,7 @@ export function ReviewScreen(): React.JSX.Element {
       setLastReflectionAtIso(lastAt);
       setCachedGeneratedAtIso(cache?.generatedAt ?? null);
       setPreviousWeekUsed(prevGrace.used);
+      setMonthlyCompletedMonthKey(monthlyCompletedKey);
 
       const prevWeek = getPreviousWeekRange(nowMs, weekStartDay);
       const prevStartIso = prevWeek.start.toISOString();
@@ -114,6 +140,31 @@ export function ReviewScreen(): React.JSX.Element {
       setError(message);
       setStatus('error');
     }
+  };
+
+  const monthlyCardState = useMemo(() => {
+    const now = new Date();
+    const day = now.getDate();
+    const isEarlyNextMonthWindow = day <= 3;
+
+    const targetMonthDate = isLastDayOfMonth(now) ? now : isEarlyNextMonthWindow ? new Date(now.getFullYear(), now.getMonth() - 1, 1) : now;
+    const targetMonthKey = monthKeyFromDate(targetMonthDate);
+    const availableNow = isLastDayOfMonth(now) || isEarlyNextMonthWindow;
+    const completed = monthlyCompletedMonthKey === targetMonthKey;
+
+    return {
+      targetMonthKey,
+      targetMonthName: monthNameFromKey(targetMonthKey),
+      availableNow,
+      completed,
+    };
+  }, [monthlyCompletedMonthKey]);
+
+  const onViewMonthlyReflection = async (): Promise<void> => {
+    const monthKey = monthlyCardState.targetMonthKey;
+    await setMonthlyReflectionCompletedMonthKey(monthKey);
+    setMonthlyCompletedMonthKey(monthKey);
+    navigation.navigate('MonthlyReflection');
   };
 
   const canGeneratePreviousWeek = useMemo(() => {
@@ -483,6 +534,29 @@ export function ReviewScreen(): React.JSX.Element {
                 ) : null}
                 <Text style={[styles.reflectionText, { color: c.textPrimary }]}>{reflection}</Text>
               </>
+            )}
+          </Card>
+
+          <View style={styles.spacer} />
+
+          <Card>
+            <Text style={[styles.cardTitle, { color: c.textPrimary }]}>Monthly Reflection</Text>
+            {!isSubscribed ? (
+              <View style={styles.footer}>
+                <Text style={[styles.cardBody, { color: c.textMuted }]}>Available with PONDR Plus</Text>
+                <AppButton title="Learn more" variant="secondary" onPress={() => navigation.navigate('PONDRPlus' as never)} />
+              </View>
+            ) : !monthlyCardState.availableNow ? (
+              <Text style={[styles.cardBody, { color: c.textMuted }]}>Available at the end of the month</Text>
+            ) : (
+              <View style={styles.footer}>
+                <Text style={[styles.cardBody, { color: c.textMuted }]}>
+                  {monthlyCardState.completed
+                    ? `Completed for ${monthlyCardState.targetMonthName}`
+                    : `For ${monthlyCardState.targetMonthName}`}
+                </Text>
+                <AppButton title="View reflection" variant="secondary" onPress={onViewMonthlyReflection} />
+              </View>
             )}
           </Card>
 

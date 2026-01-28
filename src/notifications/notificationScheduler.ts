@@ -21,7 +21,6 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: false,

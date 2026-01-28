@@ -16,7 +16,7 @@ export function WelcomeScreen({ navigation }: Props): React.JSX.Element {
     <View style={[styles.container, { backgroundColor: c.primaryMuted }]}>
       <View style={styles.header}>
         <Text style={[styles.title, { color: c.textPrimary }]}>
-          P{'\u200A'}<Image source={require('../../../assets/pondr_icon_3.png')} style={styles.titleIcon} />{'\u200A'}NDR
+          P{'\u200A'}<Image source={require('../../../assets/pondr_icon_5.png')} style={styles.titleIcon} />{'\u200A'}NDR
         </Text>
         <Text style={[styles.subtitle, { color: c.textSecondary }]}>Reflect on decisions that matter.</Text>
       </View>

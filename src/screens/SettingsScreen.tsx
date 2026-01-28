@@ -64,15 +64,21 @@ export function SettingsScreen(): React.JSX.Element {
     <ScrollView style={[styles.container, { backgroundColor: c.primaryMuted }]} contentContainerStyle={styles.content}>
       <Text style={[styles.title, { color: c.textPrimary }]}>Settings</Text>
       <Text style={[styles.subtitle, { color: c.textSecondary }]}>
-        PONDR is a lightweight decision journaling app. Log decisions as they happen and reflect on patterns in focus and confidence over time—without advice, goals, or judgment.
+        P{'\u200A'}
+        <Image source={require('../../assets/pondr_icon_5.png')} style={styles.inlineWordmarkSubtitleIcon} />
+        {'\u200A'}NDR is a lightweight decision journaling app. Log decisions as they happen and reflect on patterns in focus and confidence over time—without advice, goals, or judgment.
       </Text>
 
       <View style={styles.sectionSpacer} />
 
-      <Text style={[styles.sectionTitle, { color: c.textMuted }]}>PONDR Plus</Text>
+      <Text style={[styles.sectionTitle, { color: c.textMuted }]}>
+        P{'\u200A'}
+        <Image source={require('../../assets/pondr_icon_5.png')} style={styles.inlineWordmarkSectionTitleIcon} />
+        {'\u200A'}NDR Plus
+      </Text>
       <Card>
         <Text style={[styles.plusCardTitle, { color: c.textPrimary }]}>
-          P{'\u200A'}<Image source={require('../../assets/pondr_icon_3.png')} style={styles.plusTitleIcon} />{'\u200A'}NDR Plus
+          P{'\u200A'}<Image source={require('../../assets/pondr_icon_5.png')} style={styles.plusTitleIcon} />{'\u200A'}NDR Plus
         </Text>
         <Text style={[styles.cardText, { color: c.textSecondary }]}>Optional flexibility for reflecting on past weeks and monthly patterns.</Text>
         <View style={styles.buttonRow}>
@@ -94,7 +100,20 @@ export function SettingsScreen(): React.JSX.Element {
         </Text>
         <View style={styles.buttonRow}>
           <AppButton
-            title={isSubscribed ? 'Open' : 'Available on PONDR Plus'}
+            title={
+              isSubscribed ? (
+                'Open'
+              ) : (
+                <React.Fragment>
+                  Available on P{'\u200A'}
+                  <Image
+                    source={require('../../assets/pondr_icon_5.png')}
+                    style={styles.plusTitleIcon}
+                  />
+                  {'\u200A'}NDR Plus
+                </React.Fragment>
+              )
+            }
             variant="secondary"
             onPress={() => (isSubscribed ? navigation.navigate('MonthlyReflection') : navigation.navigate('PONDRPlus'))}
           />
@@ -186,6 +205,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
   },
+  inlineWordmarkSubtitleIcon: {
+    width: 12,
+    height: 12,
+    transform: [{ translateY: 2 }],
+    resizeMode: 'contain',
+  },
   sectionSpacer: {
     height: 20,
   },
@@ -196,6 +221,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 10,
   },
+  inlineWordmarkSectionTitleIcon: {
+    width: 10,
+    height: 10,
+    transform: [{ translateY: 2 }],
+    resizeMode: 'contain',
+  },
   plusCardTitle: {
     fontSize: 12,
     fontWeight: '800',
@@ -203,9 +234,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   plusTitleIcon: {
-    width: 10,
-    height: 10,
-    transform: [{ translateY: 1 }],
+    width: 12,
+    height: 12,
+    transform: [{ translateY: 2 }],
+    resizeMode: 'contain',
+  },
+  inlineWordmarkButtonIcon: {
+    width: 14,
+    height: 14,
+    transform: [{ translateY: 2 }],
     resizeMode: 'contain',
   },
   cardText: {
