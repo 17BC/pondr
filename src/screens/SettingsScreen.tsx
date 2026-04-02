@@ -65,7 +65,7 @@ export function SettingsScreen(): React.JSX.Element {
       <Text style={[styles.title, { color: c.textPrimary }]}>Settings</Text>
       <Text style={[styles.subtitle, { color: c.textSecondary }]}>
         P{'\u200A'}
-        <Image source={require('../../assets/pondr_icon_5.png')} style={styles.inlineWordmarkSubtitleIcon} />
+        <Image source={require('../../assets/pondr_icon_6.png')} style={styles.inlineWordmarkSubtitleIcon} />
         {'\u200A'}NDR is a lightweight decision journaling app. Log decisions as they happen and reflect on patterns in focus and confidence over time—without advice, goals, or judgment.
       </Text>
 
@@ -73,12 +73,12 @@ export function SettingsScreen(): React.JSX.Element {
 
       <Text style={[styles.sectionTitle, { color: c.textMuted }]}>
         P{'\u200A'}
-        <Image source={require('../../assets/pondr_icon_5.png')} style={styles.inlineWordmarkSectionTitleIcon} />
+        <Image source={require('../../assets/pondr_icon_6.png')} style={styles.inlineWordmarkSectionTitleIcon} />
         {'\u200A'}NDR Plus
       </Text>
       <Card>
         <Text style={[styles.plusCardTitle, { color: c.textPrimary }]}>
-          P{'\u200A'}<Image source={require('../../assets/pondr_icon_5.png')} style={styles.plusTitleIcon} />{'\u200A'}NDR Plus
+          P{'\u200A'}<Image source={require('../../assets/pondr_icon_6.png')} style={styles.plusTitleIcon} />{'\u200A'}NDR Plus
         </Text>
         <Text style={[styles.cardText, { color: c.textSecondary }]}>Optional flexibility for reflecting on past weeks and monthly patterns.</Text>
         <View style={styles.buttonRow}>
@@ -107,7 +107,7 @@ export function SettingsScreen(): React.JSX.Element {
                 <React.Fragment>
                   Available on P{'\u200A'}
                   <Image
-                    source={require('../../assets/pondr_icon_5.png')}
+                    source={require('../../assets/pondr_icon_6.png')}
                     style={styles.plusTitleIcon}
                   />
                   {'\u200A'}NDR Plus
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
   inlineWordmarkSubtitleIcon: {
     width: 12,
     height: 12,
-    transform: [{ translateY: 2 }],
+    transform: [{ translateY: 1 }],
     resizeMode: 'contain',
   },
   sectionSpacer: {
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   inlineWordmarkSectionTitleIcon: {
     width: 10,
     height: 10,
-    transform: [{ translateY: 2 }],
+    transform: [{ translateY: 1 }],
     resizeMode: 'contain',
   },
   plusCardTitle: {
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   inlineWordmarkButtonIcon: {
     width: 14,
     height: 14,
-    transform: [{ translateY: 2 }],
+    transform: [{ translateY: 1 }],
     resizeMode: 'contain',
   },
   cardText: {

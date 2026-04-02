@@ -114,7 +114,7 @@ export function PONDRPlusScreen(props: Props): React.JSX.Element {
     <ScrollView style={[styles.container, { backgroundColor: c.primaryMuted }]} contentContainerStyle={styles.content}>
       <Text style={[styles.title, { color: c.textPrimary }]}>
         P{'\u200A'}
-        <Image source={require('../../assets/pondr_icon_5.png')} style={styles.inlineWordmarkTitleIcon} />
+        <Image source={require('../../assets/pondr_icon_6.png')} style={styles.inlineWordmarkTitleIcon} />
         {'\u200A'}NDR Plus
       </Text>
       <Text style={[styles.subtitle, { color: c.textSecondary }]}>Extra flexibility for reflection.</Text>
@@ -124,7 +124,7 @@ export function PONDRPlusScreen(props: Props): React.JSX.Element {
       <Card>
         <Text style={[styles.body, { color: c.textSecondary }]}>
           P{'\u200A'}
-          <Image source={require('../../assets/pondr_icon_5.png')} style={styles.inlineWordmarkBodyIcon} />
+          <Image source={require('../../assets/pondr_icon_6.png')} style={styles.inlineWordmarkBodyIcon} />
           {'\u200A'}NDR Plus doesn’t change how the app works.
           {'\n'}It adds a bit more flexibility to the weekly rhythm.
           {'\n'}

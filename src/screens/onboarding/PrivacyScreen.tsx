@@ -18,7 +18,7 @@ export function PrivacyScreen(_props: Props): React.JSX.Element {
     <View style={[styles.container, { backgroundColor: c.primaryMuted }]}>
       <Text style={[styles.title, { color: c.textPrimary }]}>Private by default</Text>
       <Text style={[styles.subtitle, { color: c.textSecondary }]}>
-        P{'\u200A'}<Image source={require('../../../assets/pondr_icon_5.png')} style={styles.wordmarkIcon} />{'\u200A'}NDR
+        P{'\u200A'}<Image source={require('../../../assets/pondr_icon_6.png')} style={styles.wordmarkIcon} />{'\u200A'}NDR
         {' '}is designed for reflection — not surveillance.
       </Text>
 
@@ -45,7 +45,7 @@ export function PrivacyScreen(_props: Props): React.JSX.Element {
             <React.Fragment>
               Start using P{'\u200A'}
               <Image
-                source={require('../../../assets/pondr_icon_5.png')}
+                source={require('../../../assets/pondr_icon_6.png')}
                 style={[styles.wordmarkIconButton, { tintColor: c.surface }]}
               />
               {'\u200A'}NDR
