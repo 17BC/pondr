@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   titleIcon: {
     width: 30,
     height: 30,
-    transform: [{ translateY: 3 }],
+    transform: [{ translateY: -3 }],
     resizeMode: 'contain',
   },
   subtitle: {
