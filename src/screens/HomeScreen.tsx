@@ -115,9 +115,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   titleIcon: {
-    width: 28,
-    height: 28,
-    transform: [{ translateY: 2 }],
+    width: 26,
+    height: 26,
+    transform: [{ translateY: -3}],
     resizeMode: 'contain',
   },
   subtitle: {

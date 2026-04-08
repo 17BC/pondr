@@ -108,7 +108,7 @@ export function SettingsScreen(): React.JSX.Element {
                   Available on P{'\u200A'}
                   <Image
                     source={require('../../assets/pondr_icon_6.png')}
-                    style={styles.plusTitleIcon}
+                    style={[styles.inlineWordmarkButtonIcon, { width: 12, height: 12 }]}
                   />
                   {'\u200A'}NDR Plus
                 </React.Fragment>
@@ -234,15 +234,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   plusTitleIcon: {
-    width: 12,
-    height: 12,
-    transform: [{ translateY: 2 }],
+    width: 10,
+    height: 10,
+    transform: [{ translateY: 1 }],
     resizeMode: 'contain',
   },
   inlineWordmarkButtonIcon: {
     width: 14,
     height: 14,
-    transform: [{ translateY: 1 }],
+    transform: [{ translateY: -1 }],
     resizeMode: 'contain',
   },
   cardText: {

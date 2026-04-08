@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   wordmarkIcon: {
     width: 12,
     height: 12,
-    transform: [{ translateY: 1 }],
+    transform: [{ translateY: -1 }],
     resizeMode: 'contain',
   },
   spacer: {
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
   wordmarkIconButton: {
     width: 14,
     height: 14,
-    transform: [{ translateY: 2 }],
+    transform: [{ translateY: 1 }],
     resizeMode: 'contain',
   },
 });

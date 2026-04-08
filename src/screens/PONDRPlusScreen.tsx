@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   inlineWordmarkTitleIcon: {
     width: 28,
     height: 28,
-    transform: [{ translateY: 2 }],
+    transform: [{ translateY: -2 }],
     resizeMode: 'contain',
   },
   subtitle: {
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   inlineWordmarkBodyIcon: {
     width: 12,
     height: 12,
-    transform: [{ translateY: 2 }],
+    transform: [{ translateY: -1}],
     resizeMode: 'contain',
   },
   footerReassurance: {
